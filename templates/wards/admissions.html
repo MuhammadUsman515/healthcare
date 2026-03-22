@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Admissions - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Admissions</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-bed me-2 text-primary"></i>Admissions</h4>
+    <a href="{{ url_for('wards.admit_patient') }}" class="btn btn-primary"><i class="fas fa-user-plus me-2"></i>Admit Patient</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form class="row g-2" method="GET">
+            <div class="col-md-4">
+                <select name="status" class="form-select">
+                    <option value="admitted" {% if status == 'admitted' %}selected{% endif %}>Currently Admitted</option>
+                    <option value="discharged" {% if status == 'discharged' %}selected{% endif %}>Discharged</option>
+                    <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Admission ID</th><th>Patient</th><th>Bed</th><th>Doctor</th><th>Admitted</th><th>Discharged</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    {% for adm in admissions %}
+                    <tr>
+                        <td class="font-monospace small">{{ adm.admission_id }}</td>
+                        <td><a href="{{ url_for('patients.view', id=adm.patient.id) }}" class="text-decoration-none fw-semibold">{{ adm.patient.full_name }}</a></td>
+                        <td class="small">{{ adm.bed.bed_number if adm.bed else '-' }}</td>
+                        <td class="small text-muted">{{ adm.admitting_doctor.full_name if adm.admitting_doctor else '-' }}</td>
+                        <td class="small">{{ adm.admission_date.strftime('%b %d, %Y') }}</td>
+                        <td class="small">{{ adm.discharge_date.strftime('%b %d, %Y') if adm.discharge_date else '-' }}</td>
+                        <td>{% if adm.status == 'admitted' %}<span class="badge bg-warning text-dark">Admitted</span>{% else %}<span class="badge bg-success">Discharged</span>{% endif %}</td>
+                        <td>
+                            {% if adm.status == 'admitted' %}
+                            <form method="POST" action="{{ url_for('wards.discharge', id=adm.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Discharge this patient?')">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Discharge
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center py-5 text-muted">No admissions found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block title %}{{ patient.full_name }} - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('patients.index') }}">Patients</a></li>
+<li class="breadcrumb-item active">{{ patient.full_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{{ patient.full_name }}</h4>
+        <span class="patient-id me-2">{{ patient.patient_id }}</span>
+        {% if patient.status == 'active' %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('appointments.new') }}?patient_id={{ patient.id }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-calendar-plus me-1"></i>Book Appointment
+        </a>
+        <a href="{{ url_for('billing.new') }}?patient_id={{ patient.id }}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-file-invoice-dollar me-1"></i>Create Bill
+        </a>
+        <a href="{{ url_for('patients.edit', id=patient.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-edit me-1"></i>Edit
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-primary text-white fw-semibold">
+                <i class="fas fa-user me-2"></i>Patient Details
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0 small">
+                    <tr><td class="text-muted fw-semibold" width="40%">DOB</td><td>{{ patient.date_of_birth.strftime('%b %d, %Y') }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Age</td><td>{{ patient.age }} years</td></tr>
+                    <tr><td class="text-muted fw-semibold">Gender</td><td>{{ patient.gender }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Blood Group</td><td>
+                        {% if patient.blood_group %}<span class="badge bg-danger">{{ patient.blood_group }}</span>{% else %}-{% endif %}
+                    </td></tr>
+                    <tr><td class="text-muted fw-semibold">Phone</td><td>{{ patient.phone }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Email</td><td>{{ patient.email or '-' }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Address</td><td>{{ patient.address or '-' }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        {% if patient.allergies or patient.chronic_conditions %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-danger text-white fw-semibold">
+                <i class="fas fa-exclamation-triangle me-2"></i>Medical Alerts
+            </div>
+            <div class="card-body small">
+                {% if patient.allergies %}
+                <p class="fw-semibold mb-1 text-danger">Allergies:</p>
+                <p class="mb-2">{{ patient.allergies }}</p>
+                {% endif %}
+                {% if patient.chronic_conditions %}
+                <p class="fw-semibold mb-1">Chronic Conditions:</p>
+                <p class="mb-0">{{ patient.chronic_conditions }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if patient.emergency_contact_name %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-white fw-semibold">
+                <i class="fas fa-phone-alt me-2 text-warning"></i>Emergency Contact
+            </div>
+            <div class="card-body small">
+                <p class="fw-semibold mb-1">{{ patient.emergency_contact_name }}</p>
+                <p class="text-muted mb-1">{{ patient.emergency_contact_relation }}</p>
+                <p class="mb-0">{{ patient.emergency_contact_phone }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if patient.insurance_provider %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">
+                <i class="fas fa-shield-alt me-2 text-info"></i>Insurance
+            </div>
+            <div class="card-body small">
+                <p class="fw-semibold mb-1">{{ patient.insurance_provider }}</p>
+                <p class="text-muted mb-0">{{ patient.insurance_number or '' }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-8">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" id="patientTabs">
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#appointments-tab">Appointments ({{ appointments|length }})</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#records-tab">Medical Records ({{ medical_records|length }})</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#bills-tab">Billing ({{ bills|length }})</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#admissions-tab">Admissions ({{ admissions|length }})</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="appointments-tab">
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0 small">
+                            <thead class="table-light">
+                                <tr><th>ID</th><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                {% for apt in appointments %}
+                                <tr>
+                                    <td class="font-monospace">{{ apt.appointment_id }}</td>
+                                    <td>{{ apt.appointment_date.strftime('%b %d, %Y') }}</td>
+                                    <td><span class="time-slot">{{ apt.appointment_time }}</span></td>
+                                    <td>{{ apt.doctor.full_name }}</td>
+                                    <td>
+                                        {% if apt.status == 'scheduled' %}<span class="badge bg-warning text-dark">Scheduled</span>
+                                        {% elif apt.status == 'completed' %}<span class="badge bg-success">Completed</span>
+                                        {% elif apt.status == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
+                                        {% else %}<span class="badge bg-secondary">{{ apt.status }}</span>{% endif %}
+                                    </td>
+                                    <td><a href="{{ url_for('appointments.view', id=apt.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="6" class="text-center py-3 text-muted">No appointments found</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="records-tab">
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        {% for record in medical_records %}
+                        <div class="border-bottom p-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="fw-semibold small">{{ record.visit_date.strftime('%b %d, %Y') }}</span>
+                                <span class="text-muted small">{{ record.doctor.full_name }}</span>
+                            </div>
+                            {% if record.chief_complaint %}<p class="small mb-1"><strong>Complaint:</strong> {{ record.chief_complaint }}</p>{% endif %}
+                            {% if record.diagnosis %}<p class="small mb-1"><strong>Diagnosis:</strong> {{ record.diagnosis }}</p>{% endif %}
+                            {% if record.treatment_plan %}<p class="small mb-0"><strong>Treatment:</strong> {{ record.treatment_plan }}</p>{% endif %}
+                            {% if record.prescriptions %}
+                            <div class="mt-2">
+                                <small class="text-muted">Prescriptions: </small>
+                                {% for p in record.prescriptions %}
+                                <span class="badge bg-info text-dark small">{{ p.medicine_name }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4 text-muted small">No medical records found</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="bills-tab">
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0 small">
+                            <thead class="table-light">
+                                <tr><th>Bill #</th><th>Date</th><th>Total</th><th>Paid</th><th>Status</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in bills %}
+                                <tr>
+                                    <td class="font-monospace">{{ bill.bill_number }}</td>
+                                    <td>{{ bill.bill_date.strftime('%b %d, %Y') }}</td>
+                                    <td>${{ "%.2f"|format(bill.total_amount) }}</td>
+                                    <td>${{ "%.2f"|format(bill.paid_amount) }}</td>
+                                    <td>
+                                        {% if bill.payment_status == 'paid' %}<span class="badge bg-success">Paid</span>
+                                        {% elif bill.payment_status == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
+                                        {% else %}<span class="badge bg-danger">Pending</span>{% endif %}
+                                    </td>
+                                    <td><a href="{{ url_for('billing.view', id=bill.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="6" class="text-center py-3 text-muted">No bills found</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="admissions-tab">
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0 small">
+                            <thead class="table-light">
+                                <tr><th>Admission ID</th><th>Admitted</th><th>Discharged</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for adm in admissions %}
+                                <tr>
+                                    <td class="font-monospace">{{ adm.admission_id }}</td>
+                                    <td>{{ adm.admission_date.strftime('%b %d, %Y') }}</td>
+                                    <td>{{ adm.discharge_date.strftime('%b %d, %Y') if adm.discharge_date else '-' }}</td>
+                                    <td>
+                                        {% if adm.status == 'admitted' %}<span class="badge bg-warning text-dark">Admitted</span>
+                                        {% else %}<span class="badge bg-success">Discharged</span>{% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center py-3 text-muted">No admissions found</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Revenue Report - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+<li class="breadcrumb-item active">Revenue Report</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-dollar-sign me-2 text-primary"></i>Revenue Report</h4>
+    <div class="btn-group">
+        <a href="?period=week" class="btn btn-outline-primary btn-sm {% if period == 'week' %}active{% endif %}">Week</a>
+        <a href="?period=month" class="btn btn-outline-primary btn-sm {% if period == 'month' %}active{% endif %}">Month</a>
+        <a href="?period=year" class="btn btn-outline-primary btn-sm {% if period == 'year' %}active{% endif %}">Year</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-primary text-white"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div><div class="h4 fw-bold mb-0">${{ "%.2f"|format(total_billed) }}</div><div class="text-muted small">Total Billed</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-check-circle"></i></div>
+                <div><div class="h4 fw-bold mb-0">${{ "%.2f"|format(total_collected) }}</div><div class="text-muted small">Collected</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm stat-card">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-danger text-white"><i class="fas fa-exclamation-circle"></i></div>
+                <div><div class="h4 fw-bold mb-0">${{ "%.2f"|format(outstanding) }}</div><div class="text-muted small">Outstanding</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Collection Rate</div>
+            <div class="card-body">
+                {% if total_billed > 0 %}
+                {% set rate = (total_collected / total_billed * 100)|round(1) %}
+                <div class="text-center mb-3">
+                    <div class="h2 fw-bold text-{% if rate >= 80 %}success{% elif rate >= 50 %}warning{% else %}danger{% endif %}">{{ rate }}%</div>
+                    <small class="text-muted">Collection Rate</small>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-{% if rate >= 80 %}success{% elif rate >= 50 %}warning{% else %}danger{% endif %}" style="width: {{ rate }}%">{{ rate }}%</div>
+                </div>
+                {% else %}
+                <p class="text-center text-muted py-3">No billing data for this period</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Payment Status Breakdown</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Status</th><th class="text-center">Count</th><th class="text-end">Amount</th></tr></thead>
+                    <tbody>
+                        {% for status, count, amount in status_stats %}
+                        <tr>
+                            <td>
+                                {% if status == 'paid' %}<span class="badge bg-success">Paid</span>
+                                {% elif status == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
+                                {% else %}<span class="badge bg-danger">Pending</span>{% endif %}
+                            </td>
+                            <td class="text-center">{{ count }}</td>
+                            <td class="text-end fw-semibold">${{ "%.2f"|format(amount or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">No billing data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

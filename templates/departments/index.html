@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Departments - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Departments</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-sitemap me-2 text-primary"></i>Departments</h4>
+    <a href="{{ url_for('departments.new') }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Add Department</a>
+</div>
+
+<div class="row g-3">
+    {% for dept in departments %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="fw-bold mb-2">{{ dept.name }}</h5>
+                <p class="text-muted small mb-3">{{ dept.description or 'No description' }}</p>
+                <div class="d-flex justify-content-between align-items-center mb-2 small">
+                    <span class="text-muted">Doctors:</span>
+                    <span class="badge bg-primary">{{ dept.doctors|length }}</span>
+                </div>
+                {% if dept.head_doctor_id %}
+                {% set head = dept.doctors|selectattr('id', 'eq', dept.head_doctor_id)|first %}
+                {% if head %}
+                <div class="d-flex justify-content-between align-items-center mb-3 small">
+                    <span class="text-muted">Head Doctor:</span>
+                    <span class="fw-semibold">{{ head.full_name }}</span>
+                </div>
+                {% endif %}
+                {% endif %}
+                <a href="{{ url_for('departments.edit', id=dept.id) }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="fas fa-edit me-1"></i>Manage
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="fas fa-sitemap fa-2x mb-2 d-block"></i>
+                No departments yet. <a href="{{ url_for('departments.new') }}">Create a department</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

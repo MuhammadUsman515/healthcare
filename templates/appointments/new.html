@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}New Appointment - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('appointments.index') }}">Appointments</a></li>
+<li class="breadcrumb-item active">New</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-calendar-plus me-2 text-primary"></i>Book Appointment</h4>
+    <a href="{{ url_for('appointments.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back</a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form method="POST">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Patient *</label>
+                            <select name="patient_id" class="form-select" required>
+                                <option value="">Select Patient...</option>
+                                {% for patient in patients %}
+                                <option value="{{ patient.id }}" {% if patient_id|string == patient.id|string %}selected{% endif %}>
+                                    {{ patient.full_name }} ({{ patient.patient_id }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Doctor *</label>
+                            <select name="doctor_id" class="form-select" required>
+                                <option value="">Select Doctor...</option>
+                                {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">{{ doctor.full_name }} - {{ doctor.specialization }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date *</label>
+                            <input type="date" name="appointment_date" class="form-control" required
+                                   min="{{ today.strftime('%Y-%m-%d') if today else '' }}"
+                                   value="{{ today.strftime('%Y-%m-%d') if today else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Time *</label>
+                            <input type="time" name="appointment_time" class="form-control" required value="09:00">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Reason for Visit</label>
+                            <textarea name="reason" class="form-control" rows="3" placeholder="Describe the reason for this appointment..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save me-2"></i>Book Appointment</button>
+                    <a href="{{ url_for('appointments.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set min date to today
+document.querySelector('[name="appointment_date"]').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

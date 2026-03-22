@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Appointment Report - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
+<li class="breadcrumb-item active">Appointment Report</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-calendar-check me-2 text-primary"></i>Appointment Report</h4>
+    <div class="btn-group">
+        <a href="?period=week" class="btn btn-outline-primary btn-sm {% if period == 'week' %}active{% endif %}">Week</a>
+        <a href="?period=month" class="btn btn-outline-primary btn-sm {% if period == 'month' %}active{% endif %}">Month</a>
+        <a href="?period=year" class="btn btn-outline-primary btn-sm {% if period == 'year' %}active{% endif %}">Year</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-primary">{{ total }}</div><small class="text-muted">Total</small></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-success">{{ completed }}</div><small class="text-muted">Completed</small></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-warning">{{ scheduled }}</div><small class="text-muted">Scheduled</small></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-danger">{{ cancelled }}</div><small class="text-muted">Cancelled</small></div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Status Distribution</div>
+            <div class="card-body">
+                <div class="chart-container"><canvas id="statusChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Top Doctors by Appointments</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Doctor</th><th class="text-end">Appointments</th></tr></thead>
+                    <tbody>
+                        {% for first, last, count in doctor_stats %}
+                        <tr><td>Dr. {{ first }} {{ last }}</td><td class="text-end fw-bold">{{ count }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ctx = document.getElementById('statusChart').getContext('2d');
+new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: ['Completed', 'Scheduled', 'Cancelled'],
+        datasets: [{
+            data: [{{ completed }}, {{ scheduled }}, {{ cancelled }}],
+            backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+});
+</script>
+{% endblock %}

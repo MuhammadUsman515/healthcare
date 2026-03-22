@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Reports - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Reports</li>
+{% endblock %}
+
+{% block content %}
+<h4 class="fw-bold mb-4"><i class="fas fa-chart-bar me-2 text-primary"></i>Reports & Analytics</h4>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm stat-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="stat-icon bg-gradient-primary text-white mx-auto mb-3">
+                    <i class="fas fa-user-injured"></i>
+                </div>
+                <h5 class="fw-bold">Patient Report</h5>
+                <p class="text-muted small">New registrations, demographics, gender distribution</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{{ url_for('reports.patient_report') }}?period=month" class="btn btn-primary btn-sm">Monthly</a>
+                    <a href="{{ url_for('reports.patient_report') }}?period=year" class="btn btn-outline-primary btn-sm">Yearly</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm stat-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="stat-icon bg-gradient-success text-white mx-auto mb-3">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h5 class="fw-bold">Appointment Report</h5>
+                <p class="text-muted small">Appointment trends, doctor performance, completion rates</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{{ url_for('reports.appointment_report') }}?period=month" class="btn btn-success btn-sm">Monthly</a>
+                    <a href="{{ url_for('reports.appointment_report') }}?period=year" class="btn btn-outline-success btn-sm">Yearly</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm stat-card h-100">
+            <div class="card-body text-center py-4">
+                <div class="stat-icon bg-gradient-warning text-white mx-auto mb-3">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <h5 class="fw-bold">Revenue Report</h5>
+                <p class="text-muted small">Billing summary, payment status, outstanding amounts</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{{ url_for('reports.revenue_report') }}?period=month" class="btn btn-warning btn-sm text-dark">Monthly</a>
+                    <a href="{{ url_for('reports.revenue_report') }}?period=year" class="btn btn-outline-warning btn-sm">Yearly</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

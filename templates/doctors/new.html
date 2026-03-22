@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Add Doctor - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('doctors.index') }}">Doctors</a></li>
+<li class="breadcrumb-item active">Add Doctor</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-user-plus me-2 text-primary"></i>Add New Doctor</h4>
+    <a href="{{ url_for('doctors.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back</a>
+</div>
+
+<form method="POST">
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold"><i class="fas fa-user me-2 text-primary"></i>Personal Information</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" name="first_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" name="last_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Specialization *</label>
+                            <input type="text" name="specialization" class="form-control" placeholder="e.g. Cardiology" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Department</label>
+                            <select name="department_id" class="form-select">
+                                <option value="">No Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" name="phone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">License Number</label>
+                            <input type="text" name="license_number" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Qualification</label>
+                            <input type="text" name="qualification" class="form-control" placeholder="e.g. MBBS, MD, FRCS">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Experience (Years)</label>
+                            <input type="number" name="experience_years" class="form-control" min="0" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Consultation Fee ($)</label>
+                            <input type="number" name="consultation_fee" class="form-control" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold"><i class="fas fa-clock me-2 text-info"></i>Availability</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Available Days</label>
+                            <input type="text" name="available_days" class="form-control" value="Mon,Tue,Wed,Thu,Fri" placeholder="Mon,Tue,Wed,Thu,Fri">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Available From</label>
+                            <input type="time" name="available_from" class="form-control" value="09:00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Available To</label>
+                            <input type="time" name="available_to" class="form-control" value="17:00">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold"><i class="fas fa-lock me-2 text-secondary"></i>Login Credentials</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username *</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Leave blank for default: Doctor@123">
+                    </div>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary w-100 mb-2"><i class="fas fa-save me-2"></i>Add Doctor</button>
+                    <a href="{{ url_for('doctors.index') }}" class="btn btn-outline-secondary w-100">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

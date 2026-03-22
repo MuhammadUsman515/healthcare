@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Wards & Beds - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Wards & Beds</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-procedures me-2 text-primary"></i>Wards & Beds</h4>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('wards.admit_patient') }}" class="btn btn-primary"><i class="fas fa-user-plus me-2"></i>Admit Patient</a>
+        <a href="{{ url_for('wards.admissions') }}" class="btn btn-outline-primary"><i class="fas fa-list me-2"></i>Admissions</a>
+        <a href="{{ url_for('wards.new_ward') }}" class="btn btn-outline-secondary"><i class="fas fa-plus me-2"></i>Add Ward</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-primary text-white"><i class="fas fa-bed"></i></div>
+                <div><div class="h4 fw-bold mb-0">{{ total_beds }}</div><div class="text-muted small">Total Beds</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-check-circle"></i></div>
+                <div><div class="h4 fw-bold mb-0">{{ available_beds }}</div><div class="text-muted small">Available</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-danger text-white"><i class="fas fa-user-injured"></i></div>
+                <div><div class="h4 fw-bold mb-0">{{ occupied_beds }}</div><div class="text-muted small">Occupied</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for ward in wards %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">{{ ward.name }}</h6>
+                <span class="badge bg-secondary">{{ ward.ward_type or 'General' }}</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-around text-center mb-3">
+                    <div>
+                        <div class="h5 fw-bold text-primary mb-0">{{ ward.beds|length }}</div>
+                        <small class="text-muted">Total</small>
+                    </div>
+                    <div>
+                        <div class="h5 fw-bold text-success mb-0">{{ ward.available_beds }}</div>
+                        <small class="text-muted">Available</small>
+                    </div>
+                    <div>
+                        <div class="h5 fw-bold text-danger mb-0">{{ ward.beds|length - ward.available_beds }}</div>
+                        <small class="text-muted">Occupied</small>
+                    </div>
+                </div>
+
+                <!-- Bed grid -->
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                    {% for bed in ward.beds %}
+                    <span class="badge bg-{% if bed.status == 'available' %}success{% elif bed.status == 'occupied' %}danger{% else %}warning text-dark{% endif %} p-2" title="{{ bed.bed_number }} - {{ bed.status }}">
+                        {{ bed.bed_number }}
+                    </span>
+                    {% endfor %}
+                </div>
+
+                <a href="{{ url_for('wards.view_ward', id=ward.id) }}" class="btn btn-outline-primary btn-sm w-100">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="fas fa-procedures fa-2x mb-2 d-block"></i>
+                No wards created yet. <a href="{{ url_for('wards.new_ward') }}">Create a ward</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

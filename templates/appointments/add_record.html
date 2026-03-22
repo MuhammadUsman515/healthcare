@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Add Medical Record - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('appointments.index') }}">Appointments</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('appointments.view', id=appointment.id) }}">{{ appointment.appointment_id }}</a></li>
+<li class="breadcrumb-item active">Medical Record</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-notes-medical me-2 text-success"></i>Medical Record</h4>
+    <a href="{{ url_for('appointments.view', id=appointment.id) }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back</a>
+</div>
+
+<div class="alert alert-info small">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Patient:</strong> {{ appointment.patient.full_name }} &nbsp;|&nbsp;
+    <strong>Doctor:</strong> {{ appointment.doctor.full_name }} &nbsp;|&nbsp;
+    <strong>Date:</strong> {{ appointment.appointment_date.strftime('%B %d, %Y') }} at {{ appointment.appointment_time }}
+</div>
+
+<form method="POST">
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold"><i class="fas fa-stethoscope me-2 text-primary"></i>Consultation</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Chief Complaint *</label>
+                        <textarea name="chief_complaint" class="form-control" rows="2" placeholder="Patient's main complaint..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Diagnosis</label>
+                        <textarea name="diagnosis" class="form-control" rows="3" placeholder="Clinical diagnosis..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Treatment Plan</label>
+                        <textarea name="treatment_plan" class="form-control" rows="3" placeholder="Recommended treatment..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Additional Notes</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Follow-up Date</label>
+                        <input type="date" name="follow_up_date" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vitals -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold"><i class="fas fa-heartbeat me-2 text-danger"></i>Vitals</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Blood Pressure</label>
+                            <input type="text" name="vitals_bp" class="form-control" placeholder="e.g. 120/80 mmHg">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pulse Rate</label>
+                            <input type="text" name="vitals_pulse" class="form-control" placeholder="e.g. 72 bpm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Temperature</label>
+                            <input type="text" name="vitals_temperature" class="form-control" placeholder="e.g. 98.6°F">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Weight</label>
+                            <input type="text" name="vitals_weight" class="form-control" placeholder="e.g. 70 kg">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Height</label>
+                            <input type="text" name="vitals_height" class="form-control" placeholder="e.g. 170 cm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Oxygen Saturation</label>
+                            <input type="text" name="vitals_oxygen" class="form-control" placeholder="e.g. 98%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prescriptions -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center fw-semibold">
+                    <span><i class="fas fa-prescription-bottle me-2 text-info"></i>Prescriptions</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPrescriptionRow()">
+                        <i class="fas fa-plus me-1"></i>Add Medicine
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Instructions</th><th></th></tr>
+                            </thead>
+                            <tbody id="prescription-tbody">
+                                <tr>
+                                    <td><input type="text" name="medicine_name[]" class="form-control form-control-sm" placeholder="Medicine name"></td>
+                                    <td><input type="text" name="dosage[]" class="form-control form-control-sm" placeholder="e.g. 500mg"></td>
+                                    <td><input type="text" name="frequency[]" class="form-control form-control-sm" placeholder="e.g. Twice daily"></td>
+                                    <td><input type="text" name="duration[]" class="form-control form-control-sm" placeholder="e.g. 7 days"></td>
+                                    <td><input type="text" name="instructions[]" class="form-control form-control-sm" placeholder="With food"></td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lab Tests -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center fw-semibold">
+                    <span><i class="fas fa-flask me-2 text-warning"></i>Lab Tests</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addLabTestRow()">
+                        <i class="fas fa-plus me-1"></i>Add Test
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr><th>Test Name</th><th></th></tr>
+                        </thead>
+                        <tbody id="labtest-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-success w-100 mb-2"><i class="fas fa-save me-2"></i>Save Medical Record</button>
+                    <a href="{{ url_for('appointments.view', id=appointment.id) }}" class="btn btn-outline-secondary w-100">Cancel</a>
+                    <p class="text-muted small mt-2 mb-0"><i class="fas fa-info-circle me-1"></i>Saving will mark appointment as completed.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

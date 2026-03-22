@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice {{ bill.bill_number }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .invoice-header { background: #0d6efd; color: white; }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body class="p-4">
+    <div class="no-print mb-3">
+        <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print me-2"></i>Print</button>
+        <button onclick="window.close()" class="btn btn-outline-secondary ms-2">Close</button>
+    </div>
+
+    <div class="card border-0 shadow">
+        <div class="invoice-header p-4 rounded-top">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="fw-bold mb-1">MediCare Hospital</h3>
+                    <p class="mb-0 opacity-75">123 Hospital Street, Medical City</p>
+                    <p class="mb-0 opacity-75">Tel: +1-234-567-8900 | Email: info@medicare.com</p>
+                </div>
+                <div class="col-auto text-end">
+                    <h4 class="mb-1">INVOICE</h4>
+                    <p class="mb-0 opacity-75">{{ bill.bill_number }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6 class="text-muted text-uppercase small mb-2">Bill To</h6>
+                    <p class="fw-bold mb-1">{{ bill.patient.full_name }}</p>
+                    <p class="mb-1 small">ID: {{ bill.patient.patient_id }}</p>
+                    <p class="mb-0 small">{{ bill.patient.phone }}</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <table class="ms-auto small">
+                        <tr><td class="text-muted pe-3">Invoice Date:</td><td class="fw-semibold">{{ bill.bill_date.strftime('%B %d, %Y') }}</td></tr>
+                        <tr><td class="text-muted pe-3">Due Date:</td><td class="fw-semibold">{{ bill.due_date.strftime('%B %d, %Y') if bill.due_date else 'N/A' }}</td></tr>
+                        <tr><td class="text-muted pe-3">Status:</td>
+                            <td><span class="badge bg-{% if bill.payment_status == 'paid' %}success{% elif bill.payment_status == 'partial' %}warning text-dark{% else %}danger{% endif %}">{{ bill.payment_status|upper }}</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr><th>Description</th><th>Type</th><th class="text-center">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Total</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in bill.items %}
+                    <tr>
+                        <td>{{ item.description }}</td>
+                        <td>{{ item.item_type }}</td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">${{ "%.2f"|format(item.unit_price) }}</td>
+                        <td class="text-end">${{ "%.2f"|format(item.total_price) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr><td colspan="4" class="text-end">Subtotal</td><td class="text-end">${{ "%.2f"|format(bill.subtotal) }}</td></tr>
+                    <tr><td colspan="4" class="text-end">Tax</td><td class="text-end">${{ "%.2f"|format(bill.tax) }}</td></tr>
+                    <tr><td colspan="4" class="text-end">Discount</td><td class="text-end">-${{ "%.2f"|format(bill.discount) }}</td></tr>
+                    <tr class="fw-bold"><td colspan="4" class="text-end fs-5">TOTAL</td><td class="text-end fs-5">${{ "%.2f"|format(bill.total_amount) }}</td></tr>
+                    <tr class="text-success"><td colspan="4" class="text-end">Amount Paid</td><td class="text-end">${{ "%.2f"|format(bill.paid_amount) }}</td></tr>
+                    <tr class="fw-bold {% if bill.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+                        <td colspan="4" class="text-end">Balance Due</td>
+                        <td class="text-end">${{ "%.2f"|format(bill.balance_due) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            {% if bill.notes %}<p class="text-muted small mt-3"><strong>Notes:</strong> {{ bill.notes }}</p>{% endif %}
+
+            <div class="border-top pt-3 mt-4 text-center text-muted small">
+                <p class="mb-1">Thank you for choosing MediCare Hospital.</p>
+                <p class="mb-0">For inquiries, contact billing@medicare.com | +1-234-567-8900</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

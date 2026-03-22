@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Appointment {{ appointment.appointment_id }} - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('appointments.index') }}">Appointments</a></li>
+<li class="breadcrumb-item active">{{ appointment.appointment_id }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Appointment {{ appointment.appointment_id }}</h4>
+        {% if appointment.status == 'scheduled' %}<span class="badge bg-warning text-dark">Scheduled</span>
+        {% elif appointment.status == 'completed' %}<span class="badge bg-success">Completed</span>
+        {% elif appointment.status == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
+        {% else %}<span class="badge bg-secondary">{{ appointment.status }}</span>{% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        {% if appointment.status == 'scheduled' %}
+        <a href="{{ url_for('appointments.add_record', id=appointment.id) }}" class="btn btn-success btn-sm">
+            <i class="fas fa-notes-medical me-1"></i>Add Medical Record
+        </a>
+        {% endif %}
+        <a href="{{ url_for('appointments.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-white fw-semibold"><i class="fas fa-info-circle me-2 text-primary"></i>Appointment Details</div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0 small">
+                    <tr><td class="text-muted fw-semibold" width="40%">Date</td><td>{{ appointment.appointment_date.strftime('%B %d, %Y') }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Time</td><td><span class="time-slot">{{ appointment.appointment_time }}</span></td></tr>
+                    <tr><td class="text-muted fw-semibold">Patient</td><td><a href="{{ url_for('patients.view', id=appointment.patient.id) }}">{{ appointment.patient.full_name }}</a></td></tr>
+                    <tr><td class="text-muted fw-semibold">Doctor</td><td>{{ appointment.doctor.full_name }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Reason</td><td>{{ appointment.reason or '-' }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Notes</td><td>{{ appointment.notes or '-' }}</td></tr>
+                    <tr><td class="text-muted fw-semibold">Booked</td><td>{{ appointment.created_at.strftime('%b %d, %Y') }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        {% if appointment.status == 'scheduled' %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold"><i class="fas fa-sync me-2 text-warning"></i>Update Status</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('appointments.update_status', id=appointment.id) }}">
+                    <div class="input-group">
+                        <select name="status" class="form-select">
+                            <option value="completed">Mark Completed</option>
+                            <option value="cancelled">Cancel</option>
+                            <option value="no-show">No Show</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-7">
+        {% if medical_record %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white fw-semibold"><i class="fas fa-file-medical me-2"></i>Medical Record</div>
+            <div class="card-body">
+                {% if medical_record.chief_complaint %}
+                <h6 class="fw-semibold">Chief Complaint</h6>
+                <p class="text-muted small mb-3">{{ medical_record.chief_complaint }}</p>
+                {% endif %}
+                {% if medical_record.diagnosis %}
+                <h6 class="fw-semibold">Diagnosis</h6>
+                <p class="text-muted small mb-3">{{ medical_record.diagnosis }}</p>
+                {% endif %}
+                {% if medical_record.treatment_plan %}
+                <h6 class="fw-semibold">Treatment Plan</h6>
+                <p class="text-muted small mb-3">{{ medical_record.treatment_plan }}</p>
+                {% endif %}
+
+                <!-- Vitals -->
+                {% if medical_record.vitals_bp or medical_record.vitals_pulse %}
+                <h6 class="fw-semibold">Vitals</h6>
+                <div class="row g-2 mb-3">
+                    {% if medical_record.vitals_bp %}<div class="col-4"><div class="bg-light rounded p-2 text-center small"><div class="fw-bold">{{ medical_record.vitals_bp }}</div><div class="text-muted">BP</div></div></div>{% endif %}
+                    {% if medical_record.vitals_pulse %}<div class="col-4"><div class="bg-light rounded p-2 text-center small"><div class="fw-bold">{{ medical_record.vitals_pulse }}</div><div class="text-muted">Pulse</div></div></div>{% endif %}
+                    {% if medical_record.vitals_temperature %}<div class="col-4"><div class="bg-light rounded p-2 text-center small"><div class="fw-bold">{{ medical_record.vitals_temperature }}</div><div class="text-muted">Temp</div></div></div>{% endif %}
+                    {% if medical_record.vitals_weight %}<div class="col-4"><div class="bg-light rounded p-2 text-center small"><div class="fw-bold">{{ medical_record.vitals_weight }}</div><div class="text-muted">Weight</div></div></div>{% endif %}
+                    {% if medical_record.vitals_oxygen %}<div class="col-4"><div class="bg-light rounded p-2 text-center small"><div class="fw-bold">{{ medical_record.vitals_oxygen }}</div><div class="text-muted">SpO2</div></div></div>{% endif %}
+                </div>
+                {% endif %}
+
+                {% if medical_record.prescriptions %}
+                <h6 class="fw-semibold">Prescriptions</h6>
+                <table class="table table-sm mb-3">
+                    <thead><tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th></tr></thead>
+                    <tbody>
+                        {% for p in medical_record.prescriptions %}
+                        <tr class="small">
+                            <td>{{ p.medicine_name }}</td>
+                            <td>{{ p.dosage or '-' }}</td>
+                            <td>{{ p.frequency or '-' }}</td>
+                            <td>{{ p.duration or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {% if medical_record.lab_tests %}
+                <h6 class="fw-semibold">Lab Tests</h6>
+                <ul class="list-group list-group-flush small mb-3">
+                    {% for t in medical_record.lab_tests %}
+                    <li class="list-group-item py-1 d-flex justify-content-between">
+                        <span>{{ t.test_name }}</span>
+                        <span class="badge bg-{% if t.status == 'completed' %}success{% elif t.status == 'pending' %}warning text-dark{% else %}secondary{% endif %}">{{ t.status }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if medical_record.follow_up_date %}
+                <div class="alert alert-info py-2 small mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>Follow-up: {{ medical_record.follow_up_date.strftime('%B %d, %Y') }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="fas fa-file-medical fa-2x mb-3 d-block"></i>
+                No medical record yet.
+                {% if appointment.status == 'scheduled' %}
+                <br><a href="{{ url_for('appointments.add_record', id=appointment.id) }}" class="btn btn-success mt-3">
+                    <i class="fas fa-plus me-2"></i>Add Medical Record
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

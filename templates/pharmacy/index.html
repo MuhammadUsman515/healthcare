@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Pharmacy - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Pharmacy</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="fas fa-pills me-2 text-primary"></i>Pharmacy</h4>
+        {% if low_stock_count > 0 %}
+        <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>{{ low_stock_count }} item(s) are low on stock</small>
+        {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('pharmacy.prescriptions') }}" class="btn btn-outline-primary">
+            <i class="fas fa-prescription me-2"></i>Prescriptions
+        </a>
+        <a href="{{ url_for('pharmacy.new') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Medicine
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form class="row g-2" method="GET">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search medicines..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="stock" class="form-select">
+                    <option value="" {% if not stock_filter %}selected{% endif %}>All Stock</option>
+                    <option value="low" {% if stock_filter == 'low' %}selected{% endif %}>Low Stock Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Generic Name</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Expiry</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicines %}
+                    <tr>
+                        <td class="fw-semibold">{{ med.name }}</td>
+                        <td class="small text-muted">{{ med.generic_name or '-' }}</td>
+                        <td><span class="badge bg-info text-dark">{{ med.category or '-' }}</span></td>
+                        <td class="small">{{ med.unit or '-' }}</td>
+                        <td>${{ "%.2f"|format(med.unit_price) }}</td>
+                        <td>
+                            <span class="{% if med.is_low_stock %}stock-low fw-bold{% else %}stock-ok{% endif %}">
+                                {{ med.stock_quantity }}
+                                {% if med.is_low_stock %}<i class="fas fa-exclamation-triangle ms-1" title="Low stock"></i>{% endif %}
+                            </span>
+                        </td>
+                        <td class="small {% if med.expiry_date and med.expiry_date.strftime('%Y-%m-%d') < '2024-12-31' %}text-warning{% endif %}">
+                            {{ med.expiry_date.strftime('%b %Y') if med.expiry_date else '-' }}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#restockModal{{ med.id }}" title="Restock">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <a href="{{ url_for('pharmacy.edit', id=med.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+
+                            <!-- Restock Modal -->
+                            <div class="modal fade" id="restockModal{{ med.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h6 class="modal-title">Restock: {{ med.name }}</h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('pharmacy.restock', id=med.id) }}">
+                                            <div class="modal-body">
+                                                <label class="form-label">Add Quantity (Current: {{ med.stock_quantity }})</label>
+                                                <input type="number" name="quantity" class="form-control" min="1" value="50" required>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-success btn-sm">Add Stock</button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fas fa-pills fa-2x mb-2 d-block"></i>No medicines found
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer text-muted small">{{ medicines|length }} medicine(s) found</div>
+</div>
+{% endblock %}
