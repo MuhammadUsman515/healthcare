@@ -424,73 +424,143 @@ function stopSpeaking() {
 }
 
 // ── STT helper ───────────────────────────────────────────────────────────────
+let finalTranscript = '';
+let silenceTimer    = null;
+let countdownTimer  = null;
+let countdownSec    = 0;
+
+function setVoiceStatus(text, color) {
+  const el = document.getElementById('voice-status-text');
+  const ic = document.getElementById('voice-status-icon');
+  if (el) el.textContent = text;
+  if (ic) ic.style.color = color || '#64748b';
+}
+
+function startCountdown(sec) {
+  clearInterval(countdownTimer);
+  countdownSec = sec;
+  interimEl.textContent = `🎤 Bolo… (${countdownSec}s)`;
+  countdownTimer = setInterval(() => {
+    countdownSec--;
+    if (!finalTranscript) {
+      interimEl.textContent = `🎤 Bolo… (${countdownSec}s)`;
+    }
+    if (countdownSec <= 0) {
+      clearInterval(countdownTimer);
+      // If nothing spoken yet, keep mic open (don't stop)
+    }
+  }, 1000);
+}
+
 function startVoice() {
   if (!SpeechRec) return;
-  stopSpeaking(); // stop any TTS before listening
+  stopSpeaking();
+
+  finalTranscript = '';
+  chatInput.value = '';
 
   recognition = new SpeechRec();
-  recognition.lang = langSelect.value;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
-  recognition.continuous = false;
+  recognition.lang             = langSelect.value;
+  recognition.interimResults   = true;
+  recognition.maxAlternatives  = 3;
+  recognition.continuous       = true;   // ← keep mic open until user stops
 
   recognition.onstart = () => {
     isListening = true;
     micBtn.classList.add('listening');
     micIcon.className = 'fas fa-stop';
     voiceBar.style.display = 'block';
-    interimEl.textContent = 'Listening…';
     document.getElementById('voice-waves').classList.remove('idle');
+    setVoiceStatus('Listening…', '#7c3aed');
+    startCountdown(30);
   };
 
   recognition.onresult = (e) => {
-    let interim = '', final = '';
+    clearTimeout(silenceTimer);
+    let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalTranscript += e.results[i][0].transcript + ' ';
+      } else {
+        interim += e.results[i][0].transcript;
+      }
     }
-    interimEl.textContent = interim || final;
-    if (final) {
-      chatInput.value = final.trim();
+    // Show what's being heard
+    const display = (finalTranscript + interim).trim();
+    interimEl.textContent = display || '🎤 Bolo…';
+
+    // Update input live
+    if (finalTranscript.trim()) {
+      chatInput.value = finalTranscript.trim();
       chatInput.style.height = 'auto';
       chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
     }
+
+    // Auto-stop 1.5s after user stops speaking
+    silenceTimer = setTimeout(() => {
+      if (finalTranscript.trim()) {
+        recognition.stop(); // triggers onend → send
+      }
+    }, 1500);
   };
 
   recognition.onerror = (e) => {
-    const msgs = {
-      'not-allowed': '🎤 Microphone permission denied. Please allow mic access in browser settings.',
-      'no-speech':   '🔇 No speech detected. Please try again.',
-      'network':     '🌐 Network error during speech recognition.',
-      'aborted':     '',
-    };
-    stopVoice(false);
-    if (msgs[e.error]) {
-      appendMsg(`<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${msgs[e.error]}</span>`);
+    clearInterval(countdownTimer);
+    clearTimeout(silenceTimer);
+    if (e.error === 'no-speech') {
+      // Don't show error — just keep listening silently
+      interimEl.textContent = '🎤 Abhi bhi sun raha hoon…';
+      return; // recognition stays alive with continuous:true
     }
+    if (e.error === 'not-allowed') {
+      stopVoice(false);
+      appendMsg(`<div class="bot-alert-danger">🎤 Microphone permission denied.<br>
+        Browser settings → Site Settings → Microphone → Allow</div>`);
+    } else if (e.error === 'network') {
+      stopVoice(false);
+      interimEl.textContent = '🌐 Network error — retry karen';
+    }
+    // 'aborted' is expected when we call recognition.stop() — ignore
   };
 
   recognition.onend = () => {
-    stopVoice(false); // cleanup UI
-    if (chatInput.value.trim()) {
-      setTimeout(() => sendMessage(), 300); // short delay for natural feel
+    clearInterval(countdownTimer);
+    clearTimeout(silenceTimer);
+    const text = finalTranscript.trim() || chatInput.value.trim();
+    stopVoiceUI();
+    if (text) {
+      chatInput.value = text;
+      setTimeout(() => sendMessage(), 200);
+    } else {
+      setVoiceStatus('Voice ready', '#64748b');
     }
   };
 
-  recognition.start();
+  try {
+    recognition.start();
+  } catch(err) {
+    // Already started
+  }
 }
 
-function stopVoice(abort = true) {
+function stopVoiceUI() {
   isListening = false;
   micBtn.classList.remove('listening');
   micIcon.className = 'fas fa-microphone';
   voiceBar.style.display = 'none';
   interimEl.textContent = '';
   document.getElementById('voice-waves').classList.add('idle');
-  if (abort && recognition) {
-    try { recognition.abort(); } catch(e) {}
+  setVoiceStatus('Voice ready', '#64748b');
+}
+
+function stopVoice(abort = true) {
+  clearInterval(countdownTimer);
+  clearTimeout(silenceTimer);
+  stopVoiceUI();
+  if (recognition) {
+    try { abort ? recognition.abort() : recognition.stop(); } catch(e) {}
+    recognition = null;
   }
-  recognition = null;
 }
 
 function toggleVoice() {
