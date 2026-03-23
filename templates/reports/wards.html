@@ -26,22 +26,48 @@
 
 <!-- KPIs -->
 <div class="row g-3 mb-4">
-  {% for label, val, sub, color in [
-    ('Total Beds', total_beds, 'in facility', '#2563eb'),
-    ('Occupied', occupied_beds, str(occupancy_rate)+'% occupancy', '#ef4444'),
-    ('Available', available_beds, 'beds free', '#16a34a'),
-    ('Admissions (Period)', total_admissions, str(discharged)+' discharged', '#f59e0b'),
-    ('Currently Admitted', current_admissions, 'inpatients', '#7c3aed'),
-    ('Avg Stay', avg_los, 'days', '#06b6d4'),
-  ] %}
   <div class="col-6 col-xl-2">
     <div class="card border-0 shadow-sm p-3 text-center">
-      <div class="small text-muted mb-1">{{ label }}</div>
-      <div class="fw-bold fs-4" style="color:{{ color }}">{{ val }}</div>
-      <div class="small text-muted">{{ sub }}</div>
+      <div class="small text-muted mb-1">Total Beds</div>
+      <div class="fw-bold fs-4" style="color:#2563eb">{{ total_beds }}</div>
+      <div class="small text-muted">in facility</div>
     </div>
   </div>
-  {% endfor %}
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Occupied</div>
+      <div class="fw-bold fs-4" style="color:#ef4444">{{ occupied_beds }}</div>
+      <div class="small text-muted">{{ occupancy_rate }}% occupancy</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Available</div>
+      <div class="fw-bold fs-4" style="color:#16a34a">{{ available_beds }}</div>
+      <div class="small text-muted">beds free</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Admissions (Period)</div>
+      <div class="fw-bold fs-4" style="color:#f59e0b">{{ total_admissions }}</div>
+      <div class="small text-muted">{{ discharged }} discharged</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Currently Admitted</div>
+      <div class="fw-bold fs-4" style="color:#7c3aed">{{ current_admissions }}</div>
+      <div class="small text-muted">inpatients</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Avg Stay</div>
+      <div class="fw-bold fs-4" style="color:#06b6d4">{{ avg_los }}</div>
+      <div class="small text-muted">days</div>
+    </div>
+  </div>
 </div>
 
 <!-- Occupancy Rate -->

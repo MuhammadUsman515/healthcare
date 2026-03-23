@@ -135,7 +135,7 @@ def appointment_report():
     doctor_stats = db.session.query(
         Doctor.first_name, Doctor.last_name, Doctor.specialization,
         func.count(Appointment.id).label('total'),
-        func.sum(func.case((Appointment.status == 'completed', 1), else_=0)).label('done'),
+        func.sum(case((Appointment.status == 'completed', 1), else_=0)).label('done'),
     ).join(Appointment, Doctor.id == Appointment.doctor_id).filter(
         Appointment.appointment_date >= start
     ).group_by(Doctor.id).order_by(func.count(Appointment.id).desc()).limit(10).all()
@@ -331,6 +331,7 @@ def pharmacy_report():
         expiring_soon=expiring_soon, expired=expired,
         cat_stats=cat_stats, total_value=total_value,
         top_by_value=top_by_value, all_medicines=all_medicines,
+        today=date.today(),
     )
 
 
