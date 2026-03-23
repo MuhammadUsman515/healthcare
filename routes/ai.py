@@ -369,7 +369,7 @@ def triage():
             'vitals_flags': vitals_flags,
         }
 
-    patients = Patient.query.filter_by(status='active').order_by(Patient.full_name).all()
+    patients = Patient.query.filter_by(status='active').order_by(Patient.first_name, Patient.last_name).all()
     return render_template('ai/triage.html', result=result, patients=patients)
 
 
