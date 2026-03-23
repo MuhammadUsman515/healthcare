@@ -315,9 +315,18 @@ body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; }
 
 /* ── Print ───────────────────────────────────────────────────── */
 @media print {
-  #sidebar, .navbar, .btn, .alert, .trial-banner { display: none !important; }
-  #page-content-wrapper { margin: 0 !important; }
+  #sidebar, .trial-banner, .topbar, nav.navbar,
+  .no-print, .btn, .alert, .nav-tabs, .breadcrumb,
+  .sidebar-toggle, .modal, .dropdown-menu { display: none !important; }
+  #page-content-wrapper { margin: 0 !important; width: 100% !important; }
+  #wrapper { display: block !important; }
   .container-fluid { padding: 0 !important; }
+  .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; break-inside: avoid; }
+  .tab-pane { display: block !important; opacity: 1 !important; }
+  body { background: #fff !important; font-size: 12px !important; }
+  .print-header { display: block !important; }
+  a[href]:after { content: none !important; }
+  .table { font-size: 11px; }
 }
 
 /* ── Mobile ──────────────────────────────────────────────────── */

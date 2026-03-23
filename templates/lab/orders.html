@@ -8,7 +8,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">Lab Test Orders</h4>
-    <a href="{{ url_for('lab.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('lab.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+        <button onclick="window.print()" class="btn btn-outline-dark no-print"><i class="fas fa-print me-1"></i>Print</button>
+    </div>
 </div>
 
 <div class="card shadow-sm mb-3">
