@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ hospital_name }} - BizVinc HMS{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
-<body class="bg-light" {% if trial_days_left is not none %}data-trial-days="{{ trial_days_left }}"{% endif %}>
+<body {% if trial_days_left is not none %}data-trial-days="{{ trial_days_left }}"{% endif %}>
 
 <!-- Trial Banner -->
 {% if subscription_status == 'trial' and trial_days_left is not none %}
@@ -33,236 +33,242 @@
 {% endif %}
 
 <div class="d-flex" id="wrapper">
-    <!-- Sidebar -->
-    <div id="sidebar" class="bg-dark text-white sidebar">
-        <div class="sidebar-brand d-flex align-items-center px-3 py-3 border-bottom border-secondary">
+    <!-- ═══════════════════════════════════════════
+         SIDEBAR
+    ═══════════════════════════════════════════ -->
+    <div id="sidebar">
+
+        <!-- Brand -->
+        <div class="sidebar-brand d-flex align-items-center">
             <div class="brand-logo-icon me-2">
                 <i class="fas fa-{% if clinic_mode %}clinic-medical{% else %}hospital-alt{% endif %}"></i>
             </div>
             <div>
-                <div class="fw-bold sidebar-brand-name">{{ hospital_name }}</div>
-                <div style="font-size:9px;letter-spacing:1px;opacity:0.6;color:#34694f">powered by BizVinc</div>
+                <div class="sidebar-brand-name">{{ hospital_name }}</div>
+                <div style="font-size:9px;letter-spacing:1.2px;opacity:.5;color:var(--green-2);text-transform:uppercase;font-weight:600">powered by BizVinc</div>
             </div>
         </div>
 
-        <!-- Mode badge -->
-        <div class="px-3 py-1">
-            {% if clinic_mode %}
-            <span class="badge bg-success w-100 py-1">
-                <i class="fas fa-circle me-1" style="font-size:7px;vertical-align:middle"></i>Clinic Mode
-            </span>
-            {% else %}
-            <span class="badge bg-primary w-100 py-1">
-                <i class="fas fa-circle me-1" style="font-size:7px;vertical-align:middle"></i>Hospital Mode
-            </span>
-            {% endif %}
-        </div>
+        <!-- Mode pill -->
+        {% if clinic_mode %}
+        <div class="sidebar-mode-pill clinic">Clinic Mode</div>
+        {% else %}
+        <div class="sidebar-mode-pill hospital">Hospital Mode</div>
+        {% endif %}
 
-        <nav class="sidebar-nav mt-2">
+        <!-- Navigation -->
+        <nav class="sidebar-nav mt-1">
             <ul class="nav flex-column">
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
                        href="{{ url_for('main.dashboard') }}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        <i class="fas fa-tachometer-alt me-2"></i><span>Dashboard</span>
                     </a>
                 </li>
 
-                <!-- ── PATIENTS ───────────────────────────── -->
-                <div class="sidebar-section-label px-3 mt-2 mb-1 text-uppercase small text-white-50">Patients</div>
+                <!-- PATIENTS -->
+                <div class="sidebar-section-label">Patients</div>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'patients.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'patients.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('patients.index') }}">
-                        <i class="fas fa-user-injured me-2"></i>Patients
+                        <i class="fas fa-user-injured me-2"></i><span>Patients</span>
                     </a>
                 </li>
 
                 {% if not clinic_mode %}
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'wards.admissions' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'wards.admissions' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('wards.admissions') }}">
-                        <i class="fas fa-bed me-2"></i>Admissions
+                        <i class="fas fa-bed me-2"></i><span>Admissions</span>
                     </a>
                 </li>
                 {% endif %}
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'opd.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'opd.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('opd.index') }}">
-                        <i class="fas fa-ticket-alt me-2"></i>OPD Queue
+                        <i class="fas fa-ticket-alt me-2"></i><span>OPD Queue</span>
                     </a>
                 </li>
 
                 {% if not clinic_mode %}
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'referrals.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'referrals.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('referrals.index') }}">
-                        <i class="fas fa-share-alt me-2"></i>Referrals
+                        <i class="fas fa-share-alt me-2"></i><span>Referrals</span>
                     </a>
                 </li>
                 {% endif %}
 
-                <!-- ── CLINICAL ───────────────────────────── -->
-                <div class="sidebar-section-label px-3 mt-2 mb-1 text-uppercase small text-white-50">Clinical</div>
+                <!-- CLINICAL -->
+                <div class="sidebar-section-label">Clinical</div>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'appointments.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'appointments.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('appointments.index') }}">
-                        <i class="fas fa-calendar-check me-2"></i>Appointments
+                        <i class="fas fa-calendar-check me-2"></i><span>Appointments</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'doctors.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'doctors.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('doctors.index') }}">
-                        <i class="fas fa-user-md me-2"></i>Doctors
+                        <i class="fas fa-user-md me-2"></i><span>Doctors</span>
                     </a>
                 </li>
 
                 {% if not clinic_mode %}
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'lab.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'lab.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('lab.index') }}">
-                        <i class="fas fa-microscope me-2"></i>Laboratory
+                        <i class="fas fa-microscope me-2"></i><span>Laboratory</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'blood_bank.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'blood_bank.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('blood_bank.index') }}">
-                        <i class="fas fa-tint me-2"></i>Blood Bank
+                        <i class="fas fa-tint me-2"></i><span>Blood Bank</span>
                     </a>
                 </li>
                 {% endif %}
 
-                <!-- ── OPERATIONS ─────────────────────────── -->
-                <div class="sidebar-section-label px-3 mt-2 mb-1 text-uppercase small text-white-50">Operations</div>
+                <!-- OPERATIONS -->
+                <div class="sidebar-section-label">Operations</div>
 
                 {% if not clinic_mode %}
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'wards.' in request.endpoint and 'admissions' not in (request.endpoint or '') %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'wards.' in request.endpoint and 'admissions' not in (request.endpoint or '') %}active{% endif %}"
                        href="{{ url_for('wards.index') }}">
-                        <i class="fas fa-procedures me-2"></i>Wards & Beds
+                        <i class="fas fa-procedures me-2"></i><span>Wards & Beds</span>
                     </a>
                 </li>
                 {% endif %}
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'departments.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'departments.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('departments.index') }}">
-                        <i class="fas fa-sitemap me-2"></i>Departments
+                        <i class="fas fa-sitemap me-2"></i><span>Departments</span>
                     </a>
                 </li>
 
                 {% if not clinic_mode %}
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'ambulance.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'ambulance.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('ambulance.index') }}">
-                        <i class="fas fa-ambulance me-2"></i>Ambulance
+                        <i class="fas fa-ambulance me-2"></i><span>Ambulance</span>
                     </a>
                 </li>
                 {% endif %}
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'staff.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'staff.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('staff.index') }}">
-                        <i class="fas fa-users-cog me-2"></i>Staff
+                        <i class="fas fa-users-cog me-2"></i><span>Staff</span>
                     </a>
                 </li>
 
-                <!-- ── FINANCE ────────────────────────────── -->
-                <div class="sidebar-section-label px-3 mt-2 mb-1 text-uppercase small text-white-50">Finance</div>
+                <!-- FINANCE -->
+                <div class="sidebar-section-label">Finance</div>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'billing.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'billing.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('billing.index') }}">
-                        <i class="fas fa-file-invoice-dollar me-2"></i>Billing
+                        <i class="fas fa-file-invoice-dollar me-2"></i><span>Billing</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'pharmacy.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'pharmacy.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('pharmacy.index') }}">
-                        <i class="fas fa-pills me-2"></i>Pharmacy
+                        <i class="fas fa-pills me-2"></i><span>Pharmacy</span>
                     </a>
                 </li>
 
                 {% if not clinic_mode %}
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'purchase_orders.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'purchase_orders.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('purchase_orders.index') }}">
-                        <i class="fas fa-file-alt me-2"></i>Purchase Orders
+                        <i class="fas fa-file-alt me-2"></i><span>Purchase Orders</span>
                     </a>
                 </li>
                 {% endif %}
 
-                <!-- ── ANALYTICS & ADMIN ──────────────────── -->
-                <div class="sidebar-section-label px-3 mt-2 mb-1 text-uppercase small text-white-50">Analytics & Admin</div>
+                <!-- ANALYTICS & ADMIN -->
+                <div class="sidebar-section-label">Analytics & Admin</div>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'reports.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'reports.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('reports.index') }}">
-                        <i class="fas fa-chart-bar me-2"></i>Reports
+                        <i class="fas fa-chart-bar me-2"></i><span>Reports</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'audit.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'audit.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('audit.index') }}">
-                        <i class="fas fa-shield-alt me-2"></i>Audit Logs
+                        <i class="fas fa-shield-alt me-2"></i><span>Audit Logs</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link sidebar-ai-link {% if request.endpoint and 'ai.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link sidebar-ai-link {% if request.endpoint and 'ai.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('ai.index') }}">
-                        <i class="fas fa-brain me-2"></i>AI Assistant
-                        <span class="badge bg-purple ms-1 small">AI</span>
+                        <i class="fas fa-brain me-2"></i><span>AI Assistant</span>
+                        <span class="badge ms-auto" style="background:var(--purple);font-size:.6rem;padding:2px 6px">AI</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'saas.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'saas.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('saas.subscription') }}">
-                        <i class="fas fa-credit-card me-2"></i>Subscription
+                        <i class="fas fa-credit-card me-2"></i><span>Subscription</span>
                         {% if subscription_status == 'trial' %}
-                        <span class="badge bg-warning text-dark ms-1 small">Trial</span>
+                        <span class="badge ms-auto" style="background:var(--amber);color:#000;font-size:.6rem;padding:2px 6px">Trial</span>
                         {% endif %}
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'settings.' in request.endpoint %}active{% endif %}"
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'settings.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('settings.index') }}">
-                        <i class="fas fa-cog me-2"></i>Settings
+                        <i class="fas fa-cog me-2"></i><span>Settings</span>
                     </a>
                 </li>
 
             </ul>
         </nav>
 
-        <div class="sidebar-footer px-3 py-3 border-top border-secondary mt-auto">
-            <div class="d-flex align-items-center">
-                <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
-                    <i class="fas fa-user text-white small"></i>
+        <!-- Sidebar footer / user card -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user-card">
+                <div class="avatar-sm">
+                    {{ current_user.username[0].upper() }}
                 </div>
                 <div class="flex-grow-1 overflow-hidden">
-                    <div class="text-white small fw-bold text-truncate">{{ current_user.username }}</div>
-                    <div class="text-white-50 small text-capitalize">{{ current_user.role }}</div>
+                    <div class="text-white fw-semibold text-truncate" style="font-size:.82rem">{{ current_user.username }}</div>
+                    <div style="font-size:.72rem;color:rgba(255,255,255,.4);text-transform:capitalize">{{ current_user.role }}</div>
                 </div>
-                <a href="{{ url_for('auth.logout') }}" class="text-white-50 ms-2" title="Logout">
+                <a href="{{ url_for('auth.logout') }}" title="Logout"
+                   style="color:rgba(255,255,255,.35);font-size:.85rem;transition:color .18s"
+                   onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='rgba(255,255,255,.35)'">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
         </div>
-    </div>
 
-    <!-- Page Content -->
-    <div id="page-content-wrapper" class="flex-grow-1">
-        <!-- Top Navigation -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-3">
-            <button class="btn btn-sm btn-outline-secondary me-3" id="sidebarToggle">
+    </div><!-- /sidebar -->
+
+    <!-- ═══════════════════════════════════════════
+         PAGE CONTENT
+    ═══════════════════════════════════════════ -->
+    <div id="page-content-wrapper">
+
+        <!-- Top Navbar -->
+        <nav class="topnav">
+            <button class="topnav-btn topnav-btn-ghost" id="sidebarToggle" style="width:36px;padding:0;justify-content:center">
                 <i class="fas fa-bars"></i>
             </button>
 
@@ -274,18 +280,18 @@
                 </ol>
             </nav>
 
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <a href="{{ url_for('opd.checkin') }}" class="btn btn-outline-success btn-sm d-none d-lg-inline-flex">
-                    <i class="fas fa-ticket-alt me-1"></i>OPD Check-in
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <a href="{{ url_for('opd.checkin') }}" class="topnav-btn topnav-btn-outline d-none d-lg-inline-flex">
+                    <i class="fas fa-ticket-alt"></i><span>OPD Check-in</span>
                 </a>
-                <a href="{{ url_for('appointments.new') }}" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus me-1"></i>New Appointment
+                <a href="{{ url_for('appointments.new') }}" class="topnav-btn topnav-btn-primary">
+                    <i class="fas fa-plus"></i><span>New Appointment</span>
                 </a>
-                <a href="{{ url_for('patients.new') }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-user-plus me-1"></i>New Patient
+                <a href="{{ url_for('patients.new') }}" class="topnav-btn topnav-btn-ghost d-none d-md-inline-flex">
+                    <i class="fas fa-user-plus"></i><span>New Patient</span>
                 </a>
-                <div class="text-muted small d-none d-lg-block">
-                    <i class="fas fa-clock me-1"></i>
+                <div class="time-badge d-none d-lg-flex align-items-center gap-1">
+                    <i class="fas fa-clock" style="color:var(--muted);font-size:.75rem"></i>
                     <span id="current-time"></span>
                 </div>
             </div>
@@ -310,8 +316,8 @@
         <div class="container-fluid px-4 py-3">
             {% block content %}{% endblock %}
         </div>
-    </div>
-</div>
+    </div><!-- /page-content-wrapper -->
+</div><!-- /wrapper -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
