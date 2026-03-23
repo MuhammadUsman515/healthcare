@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}AI Assistant – {{ hospital_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-brain me-2 text-purple"></i>AI Assistant</h4>
+    <small class="text-muted">Smart tools powered by clinical intelligence</small>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Symptom Checker -->
+  <div class="col-md-6 col-lg-3">
+    <a href="{{ url_for('ai.symptom_checker') }}" class="text-decoration-none">
+      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
+        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(124,58,237,.1)">
+          <i class="fas fa-stethoscope fa-2x" style="color:#7c3aed"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Symptom Checker</h5>
+        <p class="text-muted small mb-0">Select symptoms to get possible diagnoses and conditions.</p>
+        <div class="mt-3">
+          <span class="badge" style="background:rgba(124,58,237,.15);color:#7c3aed">Try it</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Drug Interaction Checker -->
+  <div class="col-md-6 col-lg-3">
+    <a href="{{ url_for('ai.drug_checker') }}" class="text-decoration-none">
+      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
+        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(239,68,68,.1)">
+          <i class="fas fa-pills fa-2x" style="color:#ef4444"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Drug Checker</h5>
+        <p class="text-muted small mb-0">Check for dangerous drug-drug interactions before prescribing.</p>
+        <div class="mt-3">
+          <span class="badge" style="background:rgba(239,68,68,.15);color:#ef4444">Try it</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- AI Insights -->
+  <div class="col-md-6 col-lg-3">
+    <a href="{{ url_for('ai.insights') }}" class="text-decoration-none">
+      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
+        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(37,99,235,.1)">
+          <i class="fas fa-chart-line fa-2x" style="color:#2563eb"></i>
+        </div>
+        <h5 class="fw-bold mb-2">AI Insights</h5>
+        <p class="text-muted small mb-0">Revenue, appointment trends and smart operational recommendations.</p>
+        <div class="mt-3">
+          <span class="badge" style="background:rgba(37,99,235,.15);color:#2563eb">Explore</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Risk Scoring -->
+  <div class="col-md-6 col-lg-3">
+    <a href="{{ url_for('patients.index') }}" class="text-decoration-none">
+      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
+        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(245,158,11,.1)">
+          <i class="fas fa-exclamation-triangle fa-2x" style="color:#f59e0b"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Risk Scoring</h5>
+        <p class="text-muted small mb-0">Patient-level chronic condition risk scores based on medical history.</p>
+        <div class="mt-3">
+          <span class="badge" style="background:rgba(245,158,11,.15);color:#f59e0b">View Patients</span>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-4" style="background:linear-gradient(135deg,#0f172a,#0f2b1f);color:#fff">
+  <div class="card-body p-4 d-flex align-items-center gap-4">
+    <div style="font-size:3rem;opacity:.6"><i class="fas fa-robot"></i></div>
+    <div>
+      <h5 class="fw-bold mb-1">Clinical Intelligence Engine</h5>
+      <p class="mb-0 small" style="color:rgba(255,255,255,.7)">
+        BizVinc AI uses curated clinical knowledge bases for symptom mapping, drug interactions and
+        patient risk stratification — no external API calls, 100% on-premise data privacy.
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+.ai-tool-card { transition: transform .2s, box-shadow .2s; cursor: pointer; }
+.ai-tool-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.12) !important; }
+.ai-icon-circle { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+</style>
+{% endblock %}

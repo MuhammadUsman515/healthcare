@@ -3,19 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ hospital_name }} - HMS{% endblock %}</title>
+    <title>{% block title %}{{ hospital_name }} - BizVinc HMS{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="bg-light" {% if trial_days_left is not none %}data-trial-days="{{ trial_days_left }}"{% endif %}>
+
+<!-- Trial Banner -->
+{% if subscription_status == 'trial' and trial_days_left is not none %}
+<div class="trial-banner d-flex align-items-center justify-content-between px-4 py-2">
+    <div class="d-flex align-items-center gap-2">
+        <i class="fas fa-clock"></i>
+        <strong>Free Trial:</strong>
+        <span>
+            {% if trial_days_left > 0 %}
+                {{ trial_days_left }} day{% if trial_days_left != 1 %}s{% endif %} remaining
+            {% else %}
+                Your trial has expired!
+            {% endif %}
+        </span>
+    </div>
+    <a href="{{ url_for('saas.subscription') }}" class="btn btn-sm btn-light fw-semibold">
+        {% if trial_days_left > 0 %}Upgrade Now{% else %}Renew Subscription{% endif %}
+        <i class="fas fa-arrow-right ms-1"></i>
+    </a>
+</div>
+{% endif %}
 
 <div class="d-flex" id="wrapper">
     <!-- Sidebar -->
     <div id="sidebar" class="bg-dark text-white sidebar">
         <div class="sidebar-brand d-flex align-items-center px-3 py-3 border-bottom border-secondary">
-            <i class="fas fa-{% if clinic_mode %}clinic-medical{% else %}hospital-alt{% endif %} text-primary me-2 fs-4"></i>
-            <span class="fw-bold fs-5">{{ hospital_name }}</span>
+            <div class="brand-logo-icon me-2">
+                <i class="fas fa-{% if clinic_mode %}clinic-medical{% else %}hospital-alt{% endif %}"></i>
+            </div>
+            <div>
+                <div class="fw-bold sidebar-brand-name">{{ hospital_name }}</div>
+                <div style="font-size:9px;letter-spacing:1px;opacity:0.6;color:#34694f">powered by BizVinc</div>
+            </div>
         </div>
 
         <!-- Mode badge -->
@@ -184,6 +211,24 @@
                     <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'audit.' in request.endpoint %}active{% endif %}"
                        href="{{ url_for('audit.index') }}">
                         <i class="fas fa-shield-alt me-2"></i>Audit Logs
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-white-50 sidebar-link sidebar-ai-link {% if request.endpoint and 'ai.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('ai.index') }}">
+                        <i class="fas fa-brain me-2"></i>AI Assistant
+                        <span class="badge bg-purple ms-1 small">AI</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-white-50 sidebar-link {% if request.endpoint and 'saas.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('saas.subscription') }}">
+                        <i class="fas fa-credit-card me-2"></i>Subscription
+                        {% if subscription_status == 'trial' %}
+                        <span class="badge bg-warning text-dark ms-1 small">Trial</span>
+                        {% endif %}
                     </a>
                 </li>
 

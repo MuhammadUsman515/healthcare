@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Symptom Checker – {{ hospital_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('ai.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left"></i></a>
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-stethoscope me-2" style="color:#7c3aed"></i>Symptom Checker</h4>
+    <small class="text-muted">Select symptoms to identify possible conditions</small>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Select Symptoms</h6>
+        <form method="POST">
+          <div class="row g-2 mb-3">
+            {% for symptom in symptoms %}
+            <div class="col-6">
+              <label class="symptom-label d-flex align-items-center gap-2 p-2 rounded border cursor-pointer
+                            {% if symptom in selected_symptoms %}active{% endif %}">
+                <input type="checkbox" name="symptoms" value="{{ symptom }}"
+                       {% if symptom in selected_symptoms %}checked{% endif %}
+                       class="symptom-cb" style="display:none">
+                <span class="symptom-dot"></span>
+                <span class="small text-capitalize">{{ symptom }}</span>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Other symptoms (comma-separated)</label>
+            <input type="text" name="custom_symptoms" class="form-control form-control-sm"
+                   placeholder="e.g. night sweats, weight loss"
+                   value="{{ request.form.get('custom_symptoms', '') }}">
+          </div>
+          <button type="submit" class="btn w-100 fw-semibold text-white" style="background:#7c3aed">
+            <i class="fas fa-search me-2"></i>Analyze Symptoms
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    {% if results %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">
+          Possible Conditions
+          <span class="badge text-white ms-1" style="background:#7c3aed">{{ results|length }} found</span>
+        </h6>
+        {% for r in results %}
+        <div class="d-flex align-items-center justify-content-between p-3 rounded mb-2 border">
+          <div class="d-flex align-items-center gap-3">
+            <div class="condition-rank fw-bold text-muted small">#{{ loop.index }}</div>
+            <div>
+              <div class="fw-semibold">{{ r.condition }}</div>
+              <div class="text-muted small">Matched {{ r.score }} symptom{% if r.score != 1 %}s{% endif %}</div>
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold {% if r.confidence >= 70 %}text-danger{% elif r.confidence >= 40 %}text-warning{% else %}text-success{% endif %}">
+              {{ r.confidence }}%
+            </div>
+            <div class="small text-muted">confidence</div>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="alert alert-warning mt-3 small mb-0">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          This tool is for clinical reference only and does not replace professional medical diagnosis.
+        </div>
+      </div>
+    </div>
+    {% elif request.method == 'POST' %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4 text-center text-muted">
+        <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+        <p>No conditions matched the selected symptoms. Try selecting more symptoms.</p>
+      </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-5 text-muted">
+        <i class="fas fa-stethoscope fa-4x mb-3 opacity-15"></i>
+        <h6 class="fw-semibold">Select symptoms on the left</h6>
+        <p class="small mb-0">Choose one or more symptoms and click "Analyze" to see possible conditions.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.symptom-label { cursor:pointer; transition:all .15s; border-color:#e5e7eb !important; }
+.symptom-label:hover { border-color:#7c3aed !important; background:rgba(124,58,237,.05); }
+.symptom-label.active { border-color:#7c3aed !important; background:rgba(124,58,237,.08); }
+.symptom-dot { width:10px; height:10px; border-radius:50%; background:#e5e7eb; flex-shrink:0; transition:background .15s; }
+.symptom-label.active .symptom-dot { background:#7c3aed; }
+</style>
+
+<script>
+document.querySelectorAll('.symptom-label').forEach(label => {
+  label.addEventListener('click', () => {
+    const cb = label.querySelector('.symptom-cb');
+    cb.checked = !cb.checked;
+    label.classList.toggle('active', cb.checked);
+  });
+});
+</script>
+{% endblock %}

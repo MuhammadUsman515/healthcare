@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start Free Trial – BizVinc SAAS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  :root{--g:#34694f;--b:#2563eb;--p:#7c3aed;--a:#f59e0b;}
+  body{font-family:'Inter',sans-serif;min-height:100vh;background:#f8fafc;margin:0;}
+  .auth-left{background:linear-gradient(135deg,#0f172a 0%,#0f2b1f 100%);min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:3rem;}
+  .bv-logo{font-weight:800;font-size:1.6rem;color:#fff;}
+  .bv-logo span{color:var(--g);}
+  .plan-radio{display:none;}
+  .plan-card{border:2px solid #e2e8f0;border-radius:12px;padding:1.25rem;cursor:pointer;transition:all .2s;background:#fff;}
+  .plan-radio:checked + .plan-card{border-color:var(--g);background:rgba(52,105,79,.05);}
+  .plan-card:hover{border-color:var(--g);}
+  .form-control:focus,.form-select:focus{border-color:var(--g)!important;box-shadow:0 0 0 .2rem rgba(52,105,79,.15)!important;}
+  .btn-green{background:var(--g);border:none;color:#fff;width:100%;padding:.85rem;border-radius:10px;font-weight:600;font-size:1rem;transition:all .2s;}
+  .btn-green:hover{background:#2d5c44;color:#fff;}
+  .pw-strength{height:4px;border-radius:2px;transition:all .3s;background:#e2e8f0;margin-top:.3rem;}
+  .pw-strength-fill{height:100%;border-radius:2px;transition:all .3s;width:0;}
+</style>
+</head>
+<body>
+<div class="d-flex min-vh-100">
+<!-- Left -->
+<div class="auth-left d-none d-lg-flex flex-column col-lg-4" style="min-width:340px">
+  <div>
+    <div class="bv-logo mb-1"><span>Biz</span>vinc SAAS</div>
+    <div style="color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:2.5rem">Start your 15-day free trial</div>
+    <div style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:1rem;margin-bottom:2rem;">
+      <div class="fw-semibold" style="color:#fbbf24;font-size:.9rem"><i class="fas fa-gift me-2"></i>What you get free:</div>
+      <ul class="mt-2 ps-3 mb-0" style="color:rgba(255,255,255,.7);font-size:.85rem">
+        <li>Full access to all features</li>
+        <li>Up to 5 users</li>
+        <li>No credit card required</li>
+        <li>15 days — cancel anytime</li>
+      </ul>
+    </div>
+    <ul class="list-unstyled" style="color:rgba(255,255,255,.6);font-size:.88rem">
+      <li class="mb-2"><i class="fas fa-users me-2" style="color:var(--g)"></i>500+ healthcare facilities trust BizVinc</li>
+      <li class="mb-2"><i class="fas fa-globe me-2" style="color:var(--b)"></i>Used in 12 countries</li>
+      <li class="mb-2"><i class="fas fa-brain me-2" style="color:var(--p)"></i>AI-powered diagnosis & analytics</li>
+      <li class="mb-2"><i class="fas fa-shield-alt me-2" style="color:var(--a)"></i>HIPAA-compliant security</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Right: Form -->
+<div class="flex-grow-1 d-flex align-items-start justify-content-center py-4 px-3">
+  <div style="width:100%;max-width:600px">
+    <div class="text-center mb-4 d-lg-none">
+      <div class="fw-bold fs-4"><span style="color:var(--g)">Biz</span>vinc SAAS</div>
+    </div>
+    <div class="bg-white rounded-4 shadow-sm p-4 p-md-5">
+      <h4 class="fw-bold mb-1">Create your account</h4>
+      <p class="text-muted small mb-4">Start your 15-day free trial. No credit card required.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} py-2 small alert-dismissible fade show">
+              {{ message }}<button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.register') }}">
+
+        <!-- Org Name -->
+        <div class="mb-3">
+          <label class="form-label">Organization / Clinic Name <span class="text-danger">*</span></label>
+          <input type="text" name="org_name" class="form-control" placeholder="e.g. City Clinic, Al-Shifa Hospital" required value="{{ form_data.get('org_name','') }}">
+        </div>
+
+        <!-- Plan Type -->
+        <div class="mb-3">
+          <label class="form-label">Select Plan <span class="text-danger">*</span></label>
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="radio" name="plan_type" value="clinic" id="plan_clinic" class="plan-radio"
+                {% if form_data.get('plan_type','clinic') == 'clinic' %}checked{% endif %}>
+              <label for="plan_clinic" class="plan-card d-block">
+                <div class="fw-bold"><i class="fas fa-clinic-medical me-1" style="color:var(--g)"></i>Clinic</div>
+                <div class="text-muted small">₨450/user/mo</div>
+                <div style="font-size:.75rem;color:var(--g);margin-top:.3rem">Simplified features</div>
+              </label>
+            </div>
+            <div class="col-6">
+              <input type="radio" name="plan_type" value="hospital" id="plan_hospital" class="plan-radio"
+                {% if form_data.get('plan_type') == 'hospital' %}checked{% endif %}>
+              <label for="plan_hospital" class="plan-card d-block">
+                <div class="fw-bold"><i class="fas fa-hospital me-1" style="color:var(--b)"></i>Hospital</div>
+                <div class="text-muted small">₨1000/user/mo</div>
+                <div style="font-size:.75rem;color:var(--b);margin-top:.3rem">Full features</div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Country + Currency -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label">Country</label>
+            <select name="country" id="country" class="form-select">
+              <option value="Pakistan" {% if form_data.get('country','Pakistan')=='Pakistan' %}selected{% endif %}>Pakistan</option>
+              <option value="USA" {% if form_data.get('country')=='USA' %}selected{% endif %}>USA</option>
+              <option value="UK" {% if form_data.get('country')=='UK' %}selected{% endif %}>United Kingdom</option>
+              <option value="Saudi Arabia" {% if form_data.get('country')=='Saudi Arabia' %}selected{% endif %}>Saudi Arabia</option>
+              <option value="UAE" {% if form_data.get('country')=='UAE' %}selected{% endif %}>UAE</option>
+              <option value="India" {% if form_data.get('country')=='India' %}selected{% endif %}>India</option>
+              <option value="Bangladesh" {% if form_data.get('country')=='Bangladesh' %}selected{% endif %}>Bangladesh</option>
+              <option value="Other" {% if form_data.get('country')=='Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Currency</label>
+            <select name="currency" id="currency" class="form-select">
+              <option value="PKR">PKR – Pakistani Rupee</option>
+              <option value="USD">USD – US Dollar</option>
+              <option value="GBP">GBP – British Pound</option>
+              <option value="SAR">SAR – Saudi Riyal</option>
+              <option value="AED">AED – UAE Dirham</option>
+              <option value="INR">INR – Indian Rupee</option>
+              <option value="BDT">BDT – Bangladeshi Taka</option>
+              <option value="EUR">EUR – Euro</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Email + Phone -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" class="form-control" placeholder="you@clinic.com" required value="{{ form_data.get('email','') }}">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Phone</label>
+            <input type="tel" name="phone" class="form-control" placeholder="+92-xxx-xxxxxxx" value="{{ form_data.get('phone','') }}">
+          </div>
+        </div>
+
+        <!-- Username -->
+        <div class="mb-3">
+          <label class="form-label">Username (Admin) <span class="text-danger">*</span></label>
+          <input type="text" name="username" class="form-control" placeholder="min. 3 characters" minlength="3" required value="{{ form_data.get('username','') }}">
+        </div>
+
+        <!-- Password -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label">Password <span class="text-danger">*</span></label>
+            <input type="password" name="password" id="pw" class="form-control" placeholder="min. 8 chars" minlength="8" required>
+            <div class="pw-strength"><div class="pw-strength-fill" id="pwBar"></div></div>
+            <div id="pwLabel" class="text-muted" style="font-size:.72rem;margin-top:.2rem"></div>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+            <input type="password" name="confirm_password" id="pw2" class="form-control" placeholder="repeat password" required>
+            <div id="pwMatch" class="mt-1" style="font-size:.72rem"></div>
+          </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="mb-4">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="terms" required>
+            <label class="form-check-label small" for="terms">I agree to the <a href="#" style="color:var(--g)">Terms of Service</a> and <a href="#" style="color:var(--g)">Privacy Policy</a></label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-green">
+          <i class="fas fa-rocket me-2"></i>Start Your 15-Day Free Trial
+        </button>
+      </form>
+
+      <p class="text-center text-muted small mt-3">Already have an account? <a href="{{ url_for('auth.login') }}" style="color:var(--g);font-weight:600">Sign In</a></p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Country → Currency
+const currencyMap = {Pakistan:'PKR',USA:'USD',UK:'GBP','Saudi Arabia':'SAR',UAE:'AED',India:'INR',Bangladesh:'BDT'};
+document.getElementById('country').addEventListener('change', function(){
+  const c = currencyMap[this.value] || 'USD';
+  document.getElementById('currency').value = c;
+});
+
+// Password strength
+document.getElementById('pw').addEventListener('input', function(){
+  const v = this.value; const bar = document.getElementById('pwBar'); const lbl = document.getElementById('pwLabel');
+  let s=0,t='';
+  if(v.length>=8)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;
+  const colors=['#ef4444','#f59e0b','#34d399','#34694f'];
+  const labels=['Weak','Fair','Good','Strong'];
+  bar.style.width=(s*25)+'%';bar.style.background=colors[s-1]||'#e2e8f0';
+  lbl.textContent=v.length?labels[s-1]||'':'' ;lbl.style.color=colors[s-1]||'';
+});
+
+// Password match
+document.getElementById('pw2').addEventListener('input', function(){
+  const m = document.getElementById('pwMatch');
+  if(this.value===document.getElementById('pw').value){m.textContent='✓ Passwords match';m.style.color='#34694f';}
+  else{m.textContent='✗ Passwords do not match';m.style.color='#ef4444';}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizVinc SAAS – Smart Healthcare Management</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green:  #34694f;
+      --blue:   #2563eb;
+      --purple: #7c3aed;
+      --amber:  #f59e0b;
+      --cyan:   #06b6d4;
+    }
+    * { font-family: 'Inter', sans-serif; }
+
+    /* ── Navbar ── */
+    .navbar { background: #fff; box-shadow: 0 1px 10px rgba(0,0,0,.08); }
+    .navbar-brand span { color: var(--green); font-weight: 800; font-size: 1.4rem; }
+    .navbar-brand .dot { color: var(--blue); }
+    .btn-green  { background: var(--green); color: #fff; border: none; }
+    .btn-green:hover { background: #285e43; color: #fff; }
+    .btn-outline-green { border: 2px solid var(--green); color: var(--green); background: transparent; }
+    .btn-outline-green:hover { background: var(--green); color: #fff; }
+
+    /* ── Hero ── */
+    .hero-section {
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 60%, #faf5ff 100%);
+      padding: 100px 0 80px;
+    }
+    .hero-section h1 { font-size: 3rem; font-weight: 800; line-height: 1.2; color: #111827; }
+    .hero-section h1 span { color: var(--green); }
+    .hero-badge { background: #dcfce7; color: var(--green); font-size: .82rem; font-weight: 600;
+                  padding: 4px 12px; border-radius: 50px; display: inline-block; margin-bottom: 1rem; }
+
+    /* Dashboard mockup */
+    .dashboard-mockup {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.12);
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+    }
+    .mockup-topbar { background: var(--green); border-radius: 8px; height: 40px; display: flex;
+                     align-items: center; padding: 0 16px; gap: 8px; margin-bottom: 14px; }
+    .mockup-topbar .dot-w { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.5); }
+    .mockup-topbar .title-w { height: 8px; width: 100px; background: rgba(255,255,255,.6); border-radius: 4px; margin-left: auto; }
+    .stat-card { border-radius: 10px; padding: 14px 16px; color: #fff; flex: 1; }
+    .mockup-chart { background: #f9fafb; border-radius: 8px; height: 90px; margin-top: 12px;
+                    display: flex; align-items: flex-end; gap: 6px; padding: 10px 14px; }
+    .bar { border-radius: 4px 4px 0 0; flex: 1; }
+    .mockup-table { margin-top: 12px; }
+    .mockup-row { height: 10px; background: #f3f4f6; border-radius: 4px; margin-bottom: 6px; }
+
+    /* ── Stats bar ── */
+    .stats-bar { background: var(--green); padding: 28px 0; }
+    .stat-item h3 { font-size: 2rem; font-weight: 800; color: #fff; margin: 0; }
+    .stat-item p  { color: rgba(255,255,255,.8); margin: 0; font-size: .9rem; }
+
+    /* ── Features ── */
+    .features-section { padding: 80px 0; background: #fff; }
+    .feature-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 28px 24px;
+                    transition: all .2s; height: 100%; }
+    .feature-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,.09); transform: translateY(-3px); }
+    .feature-icon { width: 52px; height: 52px; border-radius: 12px; display: flex;
+                    align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 16px; }
+    .icon-green  { background: #dcfce7; color: var(--green); }
+    .icon-blue   { background: #dbeafe; color: var(--blue); }
+    .icon-purple { background: #ede9fe; color: var(--purple); }
+    .icon-amber  { background: #fef3c7; color: var(--amber); }
+    .icon-cyan   { background: #cffafe; color: var(--cyan); }
+    .feature-card h5 { font-weight: 700; font-size: 1rem; color: #111827; }
+    .feature-card p  { font-size: .88rem; color: #6b7280; }
+
+    /* ── AI Highlight ── */
+    .ai-section {
+      background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 60%, #6d28d9 100%);
+      padding: 80px 0;
+      color: #fff;
+    }
+    .ai-card { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+               border-radius: 14px; padding: 28px 24px; backdrop-filter: blur(10px); }
+    .ai-card .ai-icon { font-size: 2rem; margin-bottom: 14px; }
+    .ai-card h5 { font-weight: 700; }
+    .ai-card p { font-size: .88rem; color: rgba(255,255,255,.8); }
+
+    /* ── Pricing ── */
+    .pricing-section { padding: 80px 0; background: #f9fafb; }
+    .price-card { border-radius: 16px; padding: 36px 30px; border: 2px solid #e5e7eb;
+                  background: #fff; height: 100%; transition: all .2s; }
+    .price-card.featured { border-color: var(--blue); box-shadow: 0 12px 40px rgba(37,99,235,.15); }
+    .price-card .price-badge { font-size: .75rem; font-weight: 700; padding: 4px 12px;
+                               border-radius: 50px; display: inline-block; margin-bottom: 12px; }
+    .badge-trial-green { background: #dcfce7; color: var(--green); }
+    .badge-trial-blue  { background: #dbeafe; color: var(--blue); }
+    .price-card .amount { font-size: 2.5rem; font-weight: 800; }
+    .price-card .per    { font-size: .85rem; color: #6b7280; }
+    .price-card ul li { font-size: .88rem; color: #374151; padding: 4px 0; }
+    .price-card ul li i { width: 18px; }
+
+    /* ── Testimonials ── */
+    .testimonials-section { padding: 80px 0; background: #fff; }
+    .testimonial-card { border-radius: 14px; border: 1px solid #e5e7eb; padding: 28px 24px;
+                        height: 100%; transition: all .2s; }
+    .testimonial-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+    .testimonial-card .stars { color: var(--amber); font-size: .85rem; margin-bottom: 12px; }
+    .testimonial-card p { font-size: .9rem; color: #4b5563; font-style: italic; }
+    .testimonial-card .author { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+    .author-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex;
+                     align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .9rem; }
+
+    /* ── CTA ── */
+    .cta-section { background: linear-gradient(135deg, #34694f 0%, #2d5e45 100%); padding: 80px 0; }
+
+    /* ── Footer ── */
+    footer { background: #111827; color: #9ca3af; padding: 48px 0 24px; }
+    footer .logo-text { color: var(--green); font-weight: 800; font-size: 1.3rem; }
+    footer a { color: #9ca3af; text-decoration: none; font-size: .88rem; }
+    footer a:hover { color: #fff; }
+    footer h6 { color: #fff; font-weight: 600; margin-bottom: 12px; font-size: .88rem; text-transform: uppercase; letter-spacing: .05em; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════ NAVBAR ════════════════════ -->
+<nav class="navbar navbar-expand-lg sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('landing') if 'landing' in dir() else '#' }}">
+      <div style="background:var(--green);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-heartbeat text-white" style="font-size:.9rem;"></i>
+      </div>
+      <span>BizVinc <span class="dot">SAAS</span></span>
+    </a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMain">
+      <ul class="navbar-nav mx-auto gap-1">
+        <li class="nav-item"><a class="nav-link fw-500" href="#features">Features</a></li>
+        <li class="nav-item"><a class="nav-link fw-500" href="{{ url_for('saas.pricing') }}">Pricing</a></li>
+        <li class="nav-item"><a class="nav-link fw-500" href="#">Docs</a></li>
+      </ul>
+      <div class="d-flex gap-2 mt-2 mt-lg-0">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-green btn-sm px-4 rounded-pill">Login</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-green btn-sm px-4 rounded-pill">Start Free Trial</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<section class="hero-section">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="hero-badge"><i class="fas fa-sparkles me-1"></i> Trusted by 500+ healthcare facilities</span>
+        <h1>Smart Healthcare Management<br><span>for Clinics &amp; Hospitals</span></h1>
+        <p class="text-secondary mt-3 mb-4" style="font-size:1.05rem;line-height:1.7;">
+          One platform for patient management, appointments, billing, pharmacy, AI diagnostics, and more.
+          Built for Pakistan and the world.
+        </p>
+        <div class="d-flex align-items-center gap-2 mb-4">
+          <i class="fas fa-circle-check" style="color:var(--green);"></i>
+          <span class="text-secondary small">15-day free trial. No credit card required.</span>
+        </div>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{{ url_for('auth.register') }}" class="btn btn-green px-5 py-3 rounded-pill fw-600">
+            <i class="fas fa-rocket me-2"></i>Start Free Trial
+          </a>
+          <a href="{{ url_for('saas.pricing') }}" class="btn btn-outline-green px-5 py-3 rounded-pill fw-600">
+            View Pricing
+          </a>
+        </div>
+        <div class="d-flex flex-wrap gap-4 mt-4">
+          <div class="d-flex align-items-center gap-2 text-secondary small">
+            <i class="fas fa-shield-halved" style="color:var(--green);"></i> HIPAA Ready
+          </div>
+          <div class="d-flex align-items-center gap-2 text-secondary small">
+            <i class="fas fa-globe" style="color:var(--blue);"></i> 12 Countries
+          </div>
+          <div class="d-flex align-items-center gap-2 text-secondary small">
+            <i class="fas fa-headset" style="color:var(--purple);"></i> 24/7 Support
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="dashboard-mockup">
+          <div class="mockup-topbar">
+            <div class="dot-w"></div><div class="dot-w"></div><div class="dot-w"></div>
+            <div class="title-w"></div>
+          </div>
+          <div class="d-flex gap-2 mb-3">
+            <div class="stat-card" style="background:var(--green);">
+              <div style="font-size:.7rem;opacity:.8;">Patients Today</div>
+              <div style="font-size:1.4rem;font-weight:800;">128</div>
+            </div>
+            <div class="stat-card" style="background:var(--blue);">
+              <div style="font-size:.7rem;opacity:.8;">Appointments</div>
+              <div style="font-size:1.4rem;font-weight:800;">64</div>
+            </div>
+            <div class="stat-card" style="background:var(--purple);">
+              <div style="font-size:.7rem;opacity:.8;">Revenue (PKR)</div>
+              <div style="font-size:1.4rem;font-weight:800;">84K</div>
+            </div>
+            <div class="stat-card" style="background:var(--amber);">
+              <div style="font-size:.7rem;opacity:.8;">Bed Occupancy</div>
+              <div style="font-size:1.4rem;font-weight:800;">87%</div>
+            </div>
+          </div>
+          <div class="mockup-chart">
+            <div class="bar" style="height:40%;background:var(--green);opacity:.6;"></div>
+            <div class="bar" style="height:60%;background:var(--green);opacity:.7;"></div>
+            <div class="bar" style="height:80%;background:var(--green);opacity:.8;"></div>
+            <div class="bar" style="height:55%;background:var(--green);opacity:.6;"></div>
+            <div class="bar" style="height:90%;background:var(--green);"></div>
+            <div class="bar" style="height:70%;background:var(--blue);opacity:.7;"></div>
+            <div class="bar" style="height:65%;background:var(--blue);opacity:.6;"></div>
+          </div>
+          <div class="mockup-table mt-2">
+            <div class="mockup-row" style="width:90%;"></div>
+            <div class="mockup-row" style="width:75%;"></div>
+            <div class="mockup-row" style="width:85%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ STATS BAR ════════════════════ -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="row text-center g-4">
+      <div class="col-6 col-md-3 stat-item">
+        <h3>500+</h3><p>Clinics &amp; Hospitals</p>
+      </div>
+      <div class="col-6 col-md-3 stat-item">
+        <h3>50,000+</h3><p>Patients Managed</p>
+      </div>
+      <div class="col-6 col-md-3 stat-item">
+        <h3>12</h3><p>Countries</p>
+      </div>
+      <div class="col-6 col-md-3 stat-item">
+        <h3>99.9%</h3><p>Uptime</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ FEATURES ════════════════════ -->
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="badge bg-light text-success fw-600 px-3 py-2 rounded-pill mb-3" style="border:1px solid #dcfce7;">
+        <i class="fas fa-star me-1"></i> Features
+      </span>
+      <h2 class="fw-800" style="font-size:2.2rem;color:#111827;">Everything Your Facility Needs</h2>
+      <p class="text-secondary mt-2" style="max-width:520px;margin:auto;">
+        From patient intake to discharge — manage your entire healthcare workflow in one intelligent platform.
+      </p>
+    </div>
+    <div class="row g-4">
+      <!-- Patient Management -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon icon-green"><i class="fas fa-user-injured"></i></div>
+          <h5>Patient Management</h5>
+          <p>Complete patient profiles with medical history, allergies, prescriptions, and visit records. Full OPD/IPD management.</p>
+          <a href="#" class="text-decoration-none small fw-600" style="color:var(--green);">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+      </div>
+      <!-- Smart Appointments -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon icon-blue"><i class="fas fa-calendar-check"></i></div>
+          <h5>Smart Appointments</h5>
+          <p>Intelligent scheduling with conflict detection, SMS reminders, and multi-doctor calendar view. Reduce no-shows by 40%.</p>
+          <a href="#" class="text-decoration-none small fw-600" style="color:var(--blue);">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+      </div>
+      <!-- AI Diagnosis -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon icon-purple"><i class="fas fa-brain"></i></div>
+          <h5>AI Diagnosis Assistant</h5>
+          <p>Symptom checker, drug interaction alerts, and predictive analytics powered by AI to support clinical decisions.</p>
+          <a href="#" class="text-decoration-none small fw-600" style="color:var(--purple);">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+      </div>
+      <!-- Billing -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon icon-amber"><i class="fas fa-file-invoice-dollar"></i></div>
+          <h5>Billing &amp; Finance</h5>
+          <p>Automated invoicing, insurance claims, payment tracking, and financial reporting. Supports PKR, USD, and more.</p>
+          <a href="#" class="text-decoration-none small fw-600" style="color:var(--amber);">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+      </div>
+      <!-- Pharmacy -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon icon-cyan"><i class="fas fa-pills"></i></div>
+          <h5>Pharmacy Management</h5>
+          <p>Drug inventory, automatic reorder alerts, prescription dispensing, and expiry tracking. Full POS included.</p>
+          <a href="#" class="text-decoration-none small fw-600" style="color:var(--cyan);">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+      </div>
+      <!-- Hospital & Clinic Modes -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon icon-green"><i class="fas fa-toggle-on"></i></div>
+          <h5>Hospital &amp; Clinic Modes</h5>
+          <p>Switch between Clinic mode (OPD focused) and Hospital mode (IPD, wards, blood bank, lab, ambulance). One subscription.</p>
+          <a href="#" class="text-decoration-none small fw-600" style="color:var(--green);">Learn more <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ AI HIGHLIGHT ════════════════════ -->
+<section class="ai-section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="badge mb-3 px-3 py-2 rounded-pill fw-600" style="background:rgba(255,255,255,.2);color:#fff;">
+        <i class="fas fa-wand-magic-sparkles me-1"></i> AI-Powered
+      </span>
+      <h2 class="fw-800 text-white" style="font-size:2.2rem;">Clinical AI That Works for You</h2>
+      <p style="color:rgba(255,255,255,.75);max-width:500px;margin:auto;">
+        BizVinc AI assists doctors and clinical staff with intelligent suggestions — not replacements.
+      </p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="ai-card">
+          <div class="ai-icon"><i class="fas fa-stethoscope"></i></div>
+          <h5>Symptom Checker</h5>
+          <p>Enter patient symptoms and receive AI-powered differential diagnosis suggestions with confidence scores and specialist recommendations.</p>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-sm mt-2 rounded-pill px-4 fw-600" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);">Try It Free</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ai-card">
+          <div class="ai-icon"><i class="fas fa-pills"></i></div>
+          <h5>Drug Interaction Checker</h5>
+          <p>Instantly check for dangerous drug combinations before prescribing. Critical, high, and moderate severity alerts with clinical guidance.</p>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-sm mt-2 rounded-pill px-4 fw-600" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);">Try It Free</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ai-card">
+          <div class="ai-icon"><i class="fas fa-chart-line"></i></div>
+          <h5>Predictive Analytics</h5>
+          <p>AI-powered revenue forecasting, patient risk stratification, appointment trend analysis, and disease outbreak early warning.</p>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-sm mt-2 rounded-pill px-4 fw-600" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);">Try It Free</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ PRICING PREVIEW ════════════════════ -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="badge bg-light text-primary fw-600 px-3 py-2 rounded-pill mb-3" style="border:1px solid #dbeafe;">
+        <i class="fas fa-tag me-1"></i> Pricing
+      </span>
+      <h2 class="fw-800" style="font-size:2.2rem;color:#111827;">Simple, Transparent Pricing</h2>
+      <p class="text-secondary mt-2">Pay only for what you use. Scale as you grow.</p>
+    </div>
+    <div class="row justify-content-center g-4">
+      <!-- Clinic Plan -->
+      <div class="col-md-5">
+        <div class="price-card">
+          <span class="price-badge badge-trial-green"><i class="fas fa-gift me-1"></i>15-day free trial</span>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div style="background:#dcfce7;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-clinic-medical" style="color:var(--green);"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-700">Clinic Plan</h5>
+              <div class="text-secondary" style="font-size:.8rem;">For outpatient clinics</div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <span class="amount" style="color:var(--green);">450</span>
+            <span class="text-secondary small"> PKR / user / month</span>
+          </div>
+          <ul class="list-unstyled mb-4">
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>Unlimited patients</li>
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>Appointment scheduling</li>
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>OPD management</li>
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>Billing &amp; invoicing</li>
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>Pharmacy module</li>
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>AI features included</li>
+            <li class="py-1"><i class="fas fa-check text-success me-2"></i>Reports &amp; analytics</li>
+          </ul>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-green w-100 py-3 rounded-pill fw-600">
+            Start Free Trial
+          </a>
+        </div>
+      </div>
+      <!-- Hospital Plan -->
+      <div class="col-md-5">
+        <div class="price-card featured">
+          <span class="price-badge badge-trial-blue"><i class="fas fa-gift me-1"></i>15-day free trial</span>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div style="background:#dbeafe;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-hospital" style="color:var(--blue);"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-700">Hospital Plan</h5>
+              <div class="text-secondary" style="font-size:.8rem;">For full hospitals</div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <span class="amount" style="color:var(--blue);">1000</span>
+            <span class="text-secondary small"> PKR / user / month</span>
+          </div>
+          <ul class="list-unstyled mb-4">
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Everything in Clinic, plus:</li>
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Wards &amp; bed management</li>
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Blood bank</li>
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Ambulance tracking</li>
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Laboratory module</li>
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Purchase orders</li>
+            <li class="py-1"><i class="fas fa-check text-primary me-2"></i>Referral management</li>
+          </ul>
+          <a href="{{ url_for('auth.register') }}" class="btn w-100 py-3 rounded-pill fw-600 text-white" style="background:var(--blue);">
+            Start Free Trial
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <a href="{{ url_for('saas.pricing') }}" class="text-decoration-none fw-600" style="color:var(--blue);">
+        See full pricing details &amp; currency options <i class="fas fa-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ TESTIMONIALS ════════════════════ -->
+<section class="testimonials-section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-800" style="font-size:2.2rem;color:#111827;">Trusted by Healthcare Professionals</h2>
+      <p class="text-secondary mt-2">Real feedback from clinics and hospitals across Pakistan</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="testimonial-card">
+          <div class="stars">
+            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+            <i class="fas fa-star"></i><i class="fas fa-star"></i>
+          </div>
+          <p>"BizVinc has completely transformed how we manage our clinic. The AI symptom checker alone saves us hours every day. Our staff adapted in less than a week."</p>
+          <div class="author">
+            <div class="author-avatar" style="background:var(--green);">DR</div>
+            <div>
+              <div class="fw-600 text-dark" style="font-size:.9rem;">Dr. Rashida Naqvi</div>
+              <div class="text-secondary" style="font-size:.8rem;">Al-Noor Clinic, Lahore</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="testimonial-card">
+          <div class="stars">
+            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+            <i class="fas fa-star"></i><i class="fas fa-star"></i>
+          </div>
+          <p>"We switched from a desktop software to BizVinc and the difference is night and day. The hospital module handles our 150-bed facility perfectly. Billing errors dropped to zero."</p>
+          <div class="author">
+            <div class="author-avatar" style="background:var(--blue);">AM</div>
+            <div>
+              <div class="fw-600 text-dark" style="font-size:.9rem;">Mr. Adnan Malik</div>
+              <div class="text-secondary" style="font-size:.8rem;">Medicare Hospital, Karachi</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="testimonial-card">
+          <div class="stars">
+            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+            <i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+          </div>
+          <p>"The drug interaction checker is a game changer for our pharmacy. We caught 3 potentially dangerous combinations in the first week. Patient safety has improved dramatically."</p>
+          <div class="author">
+            <div class="author-avatar" style="background:var(--purple);">SK</div>
+            <div>
+              <div class="fw-600 text-dark" style="font-size:.9rem;">Dr. Sana Khan</div>
+              <div class="text-secondary" style="font-size:.8rem;">City Medical Center, Islamabad</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ CTA SECTION ════════════════════ -->
+<section class="cta-section text-center">
+  <div class="container">
+    <h2 class="fw-800 text-white mb-3" style="font-size:2.4rem;">
+      Ready to Transform Your Healthcare Practice?
+    </h2>
+    <p class="mb-4" style="color:rgba(255,255,255,.8);font-size:1.05rem;">
+      Join 500+ healthcare facilities. No credit card. No setup fees. Cancel anytime.
+    </p>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-light px-5 py-3 rounded-pill fw-700" style="color:var(--green);font-size:1rem;">
+      <i class="fas fa-rocket me-2"></i>Start Your 15-Day Free Trial
+    </a>
+  </div>
+</section>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="row g-4 mb-4">
+      <div class="col-lg-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div style="background:var(--green);width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-heartbeat text-white" style="font-size:.8rem;"></i>
+          </div>
+          <span class="logo-text">BizVinc SAAS</span>
+        </div>
+        <p style="font-size:.88rem;line-height:1.7;">
+          Smart healthcare management software for clinics and hospitals. Built with care for healthcare professionals worldwide.
+        </p>
+        <div class="d-flex gap-3 mt-3">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Product</h6>
+        <ul class="list-unstyled">
+          <li class="mb-2"><a href="#features">Features</a></li>
+          <li class="mb-2"><a href="{{ url_for('saas.pricing') }}">Pricing</a></li>
+          <li class="mb-2"><a href="#">Changelog</a></li>
+          <li class="mb-2"><a href="#">Roadmap</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Company</h6>
+        <ul class="list-unstyled">
+          <li class="mb-2"><a href="#">About</a></li>
+          <li class="mb-2"><a href="#">Blog</a></li>
+          <li class="mb-2"><a href="#">Careers</a></li>
+          <li class="mb-2"><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Legal</h6>
+        <ul class="list-unstyled">
+          <li class="mb-2"><a href="#">Privacy Policy</a></li>
+          <li class="mb-2"><a href="#">Terms of Service</a></li>
+          <li class="mb-2"><a href="#">HIPAA Policy</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Support</h6>
+        <ul class="list-unstyled">
+          <li class="mb-2"><a href="#">Documentation</a></li>
+          <li class="mb-2"><a href="#">Help Center</a></li>
+          <li class="mb-2"><a href="#">Status</a></li>
+          <li class="mb-2"><a href="#">API</a></li>
+        </ul>
+      </div>
+    </div>
+    <hr style="border-color:#374151;" />
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div style="font-size:.82rem;">&copy; 2025 BizVinc SAAS. All rights reserved.</div>
+      <div style="font-size:.82rem;">Made with <i class="fas fa-heart" style="color:#ef4444;"></i> for healthcare in Pakistan &amp; beyond</div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

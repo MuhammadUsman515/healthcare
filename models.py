@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default='patient')  # admin, doctor, nurse, receptionist, patient
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
 
     doctor = db.relationship('Doctor', backref='user', uselist=False)
     patient = db.relationship('Patient', backref='user', uselist=False)
@@ -603,3 +604,72 @@ class LabTestCatalog(db.Model):
 
     def __repr__(self):
         return f'<LabTestCatalog {self.name}>'
+
+
+# ─── SAAS MODELS ──────────────────────────────────────────────────────────────
+
+PLAN_PRICING = {
+    'PKR': {'clinic': 450,   'hospital': 1000,  'symbol': '₨',   'name': 'Pakistani Rupee'},
+    'USD': {'clinic': 2,     'hospital': 4,     'symbol': '$',   'name': 'US Dollar'},
+    'EUR': {'clinic': 2,     'hospital': 4,     'symbol': '€',   'name': 'Euro'},
+    'GBP': {'clinic': 1.5,   'hospital': 3,     'symbol': '£',   'name': 'British Pound'},
+    'SAR': {'clinic': 6,     'hospital': 14,    'symbol': '﷼',   'name': 'Saudi Riyal'},
+    'AED': {'clinic': 6,     'hospital': 14,    'symbol': 'د.إ', 'name': 'UAE Dirham'},
+    'INR': {'clinic': 170,   'hospital': 380,   'symbol': '₹',   'name': 'Indian Rupee'},
+    'BDT': {'clinic': 220,   'hospital': 500,   'symbol': '৳',   'name': 'Bangladeshi Taka'},
+    'EGP': {'clinic': 60,    'hospital': 140,   'symbol': 'E£',  'name': 'Egyptian Pound'},
+    'NGN': {'clinic': 1800,  'hospital': 4000,  'symbol': '₦',   'name': 'Nigerian Naira'},
+    'TRY': {'clinic': 65,    'hospital': 145,   'symbol': '₺',   'name': 'Turkish Lira'},
+    'MYR': {'clinic': 9,     'hospital': 20,    'symbol': 'RM',  'name': 'Malaysian Ringgit'},
+}
+
+
+class Organization(db.Model):
+    __tablename__ = 'organizations'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
+    plan_type = db.Column(db.String(20), default='clinic')  # clinic, hospital
+    country = db.Column(db.String(100), default='Pakistan')
+    currency = db.Column(db.String(10), default='PKR')
+    contact_email = db.Column(db.String(120), nullable=False)
+    contact_phone = db.Column(db.String(30))
+    address = db.Column(db.Text)
+    logo_url = db.Column(db.String(500))
+    trial_start = db.Column(db.DateTime, default=datetime.utcnow)
+    trial_end = db.Column(db.DateTime)
+    subscription_status = db.Column(db.String(20), default='trial')  # trial, active, expired, cancelled
+    max_users = db.Column(db.Integer, default=5)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    users = db.relationship('User', backref='organization', foreign_keys='User.org_id')
+
+    @property
+    def trial_days_left(self):
+        if self.trial_end:
+            delta = self.trial_end - datetime.utcnow()
+            return max(0, delta.days)
+        return 0
+
+    @property
+    def is_trial_active(self):
+        return self.subscription_status == 'trial' and self.trial_days_left > 0
+
+    @property
+    def is_active(self):
+        return self.subscription_status in ('trial', 'active') and (
+            self.subscription_status == 'active' or self.trial_days_left > 0
+        )
+
+    @property
+    def price_per_user(self):
+        pricing = PLAN_PRICING.get(self.currency, PLAN_PRICING['PKR'])
+        return pricing[self.plan_type]
+
+    @property
+    def currency_symbol(self):
+        pricing = PLAN_PRICING.get(self.currency, PLAN_PRICING['PKR'])
+        return pricing['symbol']
+
+    def __repr__(self):
+        return f'<Organization {self.name}>'
