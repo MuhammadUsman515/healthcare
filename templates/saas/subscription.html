@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Subscription – {{ hospital_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-crown me-2 text-warning"></i>Subscription</h4>
+    <small class="text-muted">Manage your plan and billing</small>
+  </div>
+  <a href="{{ url_for('saas.pricing') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-tags me-1"></i>View All Plans
+  </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+  {% endfor %}
+{% endwith %}
+
+{% if org %}
+<!-- Current Plan -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center p-4">
+      <div class="mb-2">
+        {% if org.subscription_status == 'active' %}
+          <span class="badge bg-success fs-6 px-3 py-2"><i class="fas fa-check-circle me-1"></i>Active</span>
+        {% elif org.subscription_status == 'trial' %}
+          <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="fas fa-clock me-1"></i>Trial</span>
+        {% else %}
+          <span class="badge bg-danger fs-6 px-3 py-2"><i class="fas fa-times-circle me-1"></i>{{ org.subscription_status|title }}</span>
+        {% endif %}
+      </div>
+      <h5 class="fw-bold mt-2">{{ org.plan_type|title }} Plan</h5>
+      <div class="display-6 fw-bold mt-2" style="color:#34694f">
+        {{ org.currency_symbol }}{{ org.price_per_user }}
+        <span class="fs-6 text-muted fw-normal">/user/mo</span>
+      </div>
+      <div class="text-muted small mt-1">{{ org.max_users }} users × {{ org.currency_symbol }}{{ org.price_per_user }}</div>
+      <div class="fw-bold mt-2" style="font-size:1.3rem">
+        = {{ org.currency_symbol }}{{ (org.max_users * org.price_per_user)|int }}/mo
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-4 h-100">
+      <h6 class="fw-bold mb-3"><i class="fas fa-building me-2 text-primary"></i>Organization</h6>
+      <table class="table table-sm table-borderless mb-0">
+        <tr><td class="text-muted small">Name</td><td class="fw-medium small">{{ org.name }}</td></tr>
+        <tr><td class="text-muted small">Email</td><td class="fw-medium small">{{ org.contact_email }}</td></tr>
+        <tr><td class="text-muted small">Country</td><td class="fw-medium small">{{ org.country }}</td></tr>
+        <tr><td class="text-muted small">Currency</td><td class="fw-medium small">{{ org.currency }}</td></tr>
+        <tr><td class="text-muted small">Max Users</td><td class="fw-medium small">{{ org.max_users }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm p-4 h-100">
+      <h6 class="fw-bold mb-3"><i class="fas fa-calendar-alt me-2 text-info"></i>Billing Cycle</h6>
+      {% if org.subscription_status == 'trial' %}
+      <div class="mb-3">
+        <div class="small text-muted mb-1">Trial ends</div>
+        <div class="fw-semibold">{{ org.trial_end.strftime('%d %b %Y') if org.trial_end else 'N/A' }}</div>
+        {% if org.trial_days_left > 0 %}
+        <div class="progress mt-2" style="height:6px">
+          <div class="progress-bar bg-warning" style="width:{{ [100 - (org.trial_days_left / 15 * 100), 0]|max }}%"></div>
+        </div>
+        <div class="text-warning small mt-1">{{ org.trial_days_left }} days remaining</div>
+        {% else %}
+        <div class="text-danger small mt-1">Trial expired</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="mb-3">
+        <div class="small text-muted mb-1">Status</div>
+        <div class="fw-semibold text-success">Active subscription</div>
+      </div>
+      {% endif %}
+      <a href="#upgrade-modal" data-bs-toggle="modal" class="btn btn-sm w-100 text-white mt-auto" style="background:#34694f">
+        <i class="fas fa-arrow-up me-1"></i>Change Plan
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Upgrade Modal -->
+<div class="modal fade" id="upgrade-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Change Subscription</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('saas.upgrade') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Plan Type</label>
+            <div class="d-flex gap-3">
+              {% for pt in ['clinic', 'hospital'] %}
+              <label class="flex-fill border rounded p-3 cursor-pointer plan-opt {% if org.plan_type == pt %}border-success bg-success bg-opacity-10{% endif %}">
+                <input type="radio" name="plan_type" value="{{ pt }}" {% if org.plan_type == pt %}checked{% endif %} class="d-none plan-radio">
+                <div class="fw-semibold text-capitalize">{{ pt }}</div>
+                <div class="small text-muted">{{ pt|title }} features</div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Currency</label>
+            <select name="currency" class="form-select">
+              {% for cur, info in pricing.items() %}
+              <option value="{{ cur }}" {% if org.currency == cur %}selected{% endif %}>{{ cur }} – {{ info.name }} ({{ info.symbol }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Number of Users</label>
+            <input type="number" name="max_users" class="form-control" value="{{ org.max_users }}" min="1" max="500">
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn text-white" style="background:#34694f">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm p-5 text-center">
+  <i class="fas fa-building fa-4x text-muted opacity-25 mb-3"></i>
+  <h5 class="fw-bold">No Organization Found</h5>
+  <p class="text-muted">Your account is not linked to any organization.</p>
+  <a href="{{ url_for('auth.register') }}" class="btn text-white mx-auto" style="background:#34694f;width:fit-content">
+    <i class="fas fa-plus me-1"></i>Create Organization
+  </a>
+</div>
+{% endif %}
+
+<style>
+.plan-opt { cursor: pointer; transition: all .15s; }
+.plan-opt:has(.plan-radio:checked) { border-color: #34694f !important; background: rgba(52,105,79,.08); }
+</style>
+{% endblock %}
