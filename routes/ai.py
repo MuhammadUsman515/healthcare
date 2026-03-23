@@ -281,3 +281,265 @@ def insights():
                            diagnoses=diagnoses,
                            ai_insights=ai_insights,
                            high_risk_count=high_risk)
+
+
+# ─── Triage Assistant ─────────────────────────────────────────────────────────
+TRIAGE_RULES = [
+    # (keywords, severity, label, action, color)
+    (['chest pain', 'chest tightness', 'heart attack', 'mi', 'cardiac'],
+     'critical', 'CRITICAL', 'Immediate resuscitation — call code team NOW', 'danger'),
+    (['stroke', 'facial droop', 'arm weakness', 'speech slur', 'unconscious', 'unresponsive', 'seizure'],
+     'critical', 'CRITICAL', 'Activate stroke/neuro protocol immediately', 'danger'),
+    (['shortness of breath', 'breathing difficulty', 'respiratory distress', 'spo2 low', 'oxygen'],
+     'critical', 'CRITICAL', 'Immediate O₂ support + physician assessment', 'danger'),
+    (['high fever', 'fever above 40', 'fever 40', 'sepsis', 'septic'],
+     'urgent', 'URGENT', 'Start IV access, blood cultures, antibiotics within 1 hr', 'warning'),
+    (['severe pain', 'pain score 8', 'pain score 9', 'pain score 10', 'trauma', 'fracture', 'bleeding'],
+     'urgent', 'URGENT', 'Pain management + urgent imaging if needed', 'warning'),
+    (['vomiting blood', 'blood in stool', 'hematuria', 'coughing blood'],
+     'urgent', 'URGENT', 'IV line, CBC urgent, GI consult', 'warning'),
+    (['diabetic', 'hypoglycemia', 'blood sugar low', 'sugar low', 'dizziness', 'syncope'],
+     'urgent', 'URGENT', 'BGL check stat, IV dextrose if BGL < 70', 'warning'),
+    (['mild fever', 'cough', 'cold', 'sore throat', 'headache', 'body ache', 'rash', 'nausea', 'diarrhea'],
+     'routine', 'ROUTINE', 'Standard OPD evaluation — queue as per availability', 'success'),
+]
+
+VITALS_ALERTS = [
+    ('hr', 'Heart Rate', 60, 100, 'bpm', 'Bradycardia', 'Tachycardia'),
+    ('sbp', 'Systolic BP', 90, 140, 'mmHg', 'Hypotension', 'Hypertension'),
+    ('dbp', 'Diastolic BP', 60, 90, 'mmHg', 'Low Diastolic', 'High Diastolic'),
+    ('spo2', 'SpO₂', 95, 100, '%', 'Hypoxia', None),
+    ('rr', 'Resp Rate', 12, 20, '/min', 'Bradypnea', 'Tachypnea'),
+    ('temp', 'Temperature', 36.0, 37.5, '°C', 'Hypothermia', 'Fever'),
+]
+
+
+@ai_bp.route('/triage', methods=['GET', 'POST'])
+@login_required
+def triage():
+    result = None
+    if request.method == 'POST':
+        chief = request.form.get('chief_complaint', '').lower()
+        hr = request.form.get('hr', '')
+        sbp = request.form.get('sbp', '')
+        dbp = request.form.get('dbp', '')
+        spo2 = request.form.get('spo2', '')
+        rr = request.form.get('rr', '')
+        temp = request.form.get('temp', '')
+
+        # Vitals alerts
+        vitals_flags = []
+        vals = {'hr': hr, 'sbp': sbp, 'dbp': dbp, 'spo2': spo2, 'rr': rr, 'temp': temp}
+        for key, label, low, high, unit, low_name, high_name in VITALS_ALERTS:
+            try:
+                v = float(vals[key])
+                if v < low:
+                    vitals_flags.append({'label': label, 'value': f'{v} {unit}', 'flag': low_name, 'color': 'danger'})
+                elif high_name and v > high:
+                    vitals_flags.append({'label': label, 'value': f'{v} {unit}', 'flag': high_name, 'color': 'warning'})
+            except (ValueError, TypeError):
+                pass
+
+        # Auto-upgrade severity if vitals are critical
+        vitals_critical = any(
+            f['color'] == 'danger' for f in vitals_flags
+        ) or (spo2 and float(spo2) < 90 if spo2 else False)
+
+        # Match triage rules
+        severity = 'routine'
+        matched_rule = TRIAGE_RULES[-1]  # default routine
+        for keywords, sev, label, action, color in TRIAGE_RULES:
+            if any(kw in chief for kw in keywords):
+                matched_rule = (keywords, sev, label, action, color)
+                severity = sev
+                break
+
+        if vitals_critical and severity == 'routine':
+            severity = 'urgent'
+            matched_rule = ([], 'urgent', 'URGENT', 'Abnormal vitals detected — physician review required urgently', 'warning')
+
+        _, sev, label, action, color = matched_rule
+
+        result = {
+            'severity': sev,
+            'label': label,
+            'action': action,
+            'color': color,
+            'chief': request.form.get('chief_complaint', ''),
+            'vitals_flags': vitals_flags,
+        }
+
+    patients = Patient.query.filter_by(status='active').order_by(Patient.full_name).all()
+    return render_template('ai/triage.html', result=result, patients=patients)
+
+
+# ─── Dose Calculator ──────────────────────────────────────────────────────────
+DOSE_DB = {
+    'paracetamol': {'adult': '500–1000 mg', 'freq': 'Every 4–6 hrs', 'max': '4000 mg/day', 'pediatric': '10–15 mg/kg', 'pediatric_max': '60 mg/kg/day', 'route': 'PO/IV/PR'},
+    'ibuprofen': {'adult': '200–400 mg', 'freq': 'Every 4–6 hrs', 'max': '2400 mg/day', 'pediatric': '5–10 mg/kg', 'pediatric_max': '40 mg/kg/day', 'route': 'PO'},
+    'amoxicillin': {'adult': '250–500 mg', 'freq': 'Every 8 hrs', 'max': '3000 mg/day', 'pediatric': '25–45 mg/kg/day', 'pediatric_max': '90 mg/kg/day', 'route': 'PO'},
+    'metformin': {'adult': '500–1000 mg', 'freq': 'Twice daily with meals', 'max': '2550 mg/day', 'pediatric': 'Not for children', 'pediatric_max': 'N/A', 'route': 'PO'},
+    'omeprazole': {'adult': '20–40 mg', 'freq': 'Once daily (before meals)', 'max': '80 mg/day', 'pediatric': '0.7–3.3 mg/kg', 'pediatric_max': '20 mg/day', 'route': 'PO/IV'},
+    'azithromycin': {'adult': '500 mg day 1, 250 mg days 2–5', 'freq': 'Once daily', 'max': '500 mg/day', 'pediatric': '10 mg/kg day 1, 5 mg/kg days 2–5', 'pediatric_max': '500 mg/day', 'route': 'PO'},
+    'ciprofloxacin': {'adult': '250–750 mg', 'freq': 'Every 12 hrs', 'max': '1500 mg/day', 'pediatric': 'Use cautiously: 10–20 mg/kg/day', 'pediatric_max': '750 mg/day', 'route': 'PO/IV'},
+    'dexamethasone': {'adult': '0.5–9 mg', 'freq': 'Once or divided doses', 'max': '40 mg/day (pulse)', 'pediatric': '0.08–0.3 mg/kg/day', 'pediatric_max': '10 mg/day', 'route': 'PO/IV/IM'},
+    'salbutamol': {'adult': '2.5–5 mg', 'freq': 'Every 4–6 hrs nebulization', 'max': '4 puffs PRN', 'pediatric': '2.5 mg (< 5 yr), 5 mg (≥ 5 yr)', 'pediatric_max': 'As directed', 'route': 'INH/NEB'},
+    'ondansetron': {'adult': '4–8 mg', 'freq': 'Every 8 hrs', 'max': '24 mg/day', 'pediatric': '0.1 mg/kg (max 4 mg)', 'pediatric_max': '12 mg/day', 'route': 'PO/IV/ODT'},
+    'metronidazole': {'adult': '400–500 mg', 'freq': 'Every 8 hrs', 'max': '2000 mg/day', 'pediatric': '7.5 mg/kg/dose', 'pediatric_max': '30 mg/kg/day', 'route': 'PO/IV'},
+    'aspirin': {'adult': '75–300 mg (cardiac) / 600–900 mg (pain)', 'freq': 'Once daily (cardiac) / every 4–6 hrs (pain)', 'max': '4000 mg/day', 'pediatric': 'Avoid (Reye syndrome)', 'pediatric_max': 'N/A', 'route': 'PO'},
+}
+
+
+@ai_bp.route('/dose-calculator', methods=['GET', 'POST'])
+@login_required
+def dose_calculator():
+    result = None
+    drug = ''
+    weight = ''
+    age = ''
+    if request.method == 'POST':
+        drug = request.form.get('drug', '').lower().strip()
+        weight = request.form.get('weight', '')
+        age = request.form.get('age', '')
+
+        # Find closest match
+        matched_drug = None
+        matched_key = ''
+        for key in DOSE_DB:
+            if key in drug or drug in key:
+                matched_drug = DOSE_DB[key]
+                matched_key = key
+                break
+
+        if matched_drug:
+            is_pediatric = False
+            try:
+                if float(age) < 12:
+                    is_pediatric = True
+            except (ValueError, TypeError):
+                pass
+
+            # Calculate dose if weight given
+            calc_dose = None
+            try:
+                w = float(weight)
+                if is_pediatric and 'mg/kg' in matched_drug['pediatric']:
+                    # Extract first mg/kg value
+                    import re
+                    nums = re.findall(r'[\d.]+', matched_drug['pediatric'].split('mg/kg')[0])
+                    if nums:
+                        dose_mg = float(nums[-1]) * w
+                        calc_dose = f'{dose_mg:.1f} mg (based on {w} kg × {nums[-1]} mg/kg)'
+            except (ValueError, TypeError):
+                pass
+
+            result = {
+                'drug': matched_key.title(),
+                'adult_dose': matched_drug['adult'],
+                'freq': matched_drug['freq'],
+                'max_dose': matched_drug['max'],
+                'pediatric_dose': matched_drug['pediatric'],
+                'pediatric_max': matched_drug['pediatric_max'],
+                'route': matched_drug['route'],
+                'is_pediatric': is_pediatric,
+                'calc_dose': calc_dose,
+            }
+        else:
+            result = {'not_found': True, 'drug': drug}
+
+    return render_template('ai/dose_calculator.html',
+                           result=result, drug=drug, weight=weight, age=age,
+                           drugs=sorted(DOSE_DB.keys()))
+
+
+# ─── Lab Interpreter ─────────────────────────────────────────────────────────
+LAB_NORMALS = {
+    # CBC
+    'hemoglobin':     {'unit': 'g/dL',      'male': (13.5, 17.5), 'female': (12.0, 15.5), 'group': 'CBC'},
+    'hematocrit':     {'unit': '%',          'male': (41, 53),     'female': (36, 46),      'group': 'CBC'},
+    'wbc':            {'unit': '×10³/µL',    'both': (4.5, 11.0),                           'group': 'CBC'},
+    'platelets':      {'unit': '×10³/µL',    'both': (150, 400),                            'group': 'CBC'},
+    'rbc':            {'unit': '×10⁶/µL',    'male': (4.5, 5.5),   'female': (4.0, 5.0),   'group': 'CBC'},
+    # Metabolic
+    'glucose':        {'unit': 'mg/dL',      'both': (70, 100),                             'group': 'Metabolic', 'note': 'Fasting'},
+    'creatinine':     {'unit': 'mg/dL',      'male': (0.7, 1.2),   'female': (0.5, 1.1),   'group': 'Renal'},
+    'bun':            {'unit': 'mg/dL',      'both': (7, 20),                               'group': 'Renal'},
+    'sodium':         {'unit': 'mEq/L',      'both': (136, 145),                            'group': 'Electrolytes'},
+    'potassium':      {'unit': 'mEq/L',      'both': (3.5, 5.0),                            'group': 'Electrolytes'},
+    'calcium':        {'unit': 'mg/dL',      'both': (8.5, 10.5),                           'group': 'Electrolytes'},
+    'chloride':       {'unit': 'mEq/L',      'both': (98, 107),                             'group': 'Electrolytes'},
+    # Liver
+    'alt':            {'unit': 'U/L',        'both': (7, 56),                               'group': 'Liver'},
+    'ast':            {'unit': 'U/L',        'both': (10, 40),                              'group': 'Liver'},
+    'bilirubin':      {'unit': 'mg/dL',      'both': (0.1, 1.2),                            'group': 'Liver'},
+    'albumin':        {'unit': 'g/dL',       'both': (3.5, 5.0),                            'group': 'Liver'},
+    # Lipids
+    'cholesterol':    {'unit': 'mg/dL',      'both': (0, 200),                              'group': 'Lipids', 'note': 'Desirable < 200'},
+    'ldl':            {'unit': 'mg/dL',      'both': (0, 100),                              'group': 'Lipids', 'note': 'Optimal < 100'},
+    'hdl':            {'unit': 'mg/dL',      'male': (40, 999),    'female': (50, 999),     'group': 'Lipids', 'note': 'Higher is better'},
+    'triglycerides':  {'unit': 'mg/dL',      'both': (0, 150),                              'group': 'Lipids'},
+    # Thyroid
+    'tsh':            {'unit': 'mIU/L',      'both': (0.4, 4.0),                            'group': 'Thyroid'},
+    't3':             {'unit': 'ng/dL',      'both': (80, 200),                             'group': 'Thyroid'},
+    't4':             {'unit': 'µg/dL',      'both': (5.0, 12.0),                           'group': 'Thyroid'},
+    # Other
+    'hba1c':          {'unit': '%',          'both': (0, 5.7),                              'group': 'Diabetes', 'note': 'Normal < 5.7%, Pre-DM 5.7–6.4%, DM ≥ 6.5%'},
+    'crp':            {'unit': 'mg/L',       'both': (0, 10),                               'group': 'Inflammation', 'note': '< 10 normal, > 10 elevated'},
+    'esr':            {'unit': 'mm/hr',      'male': (0, 15),      'female': (0, 20),       'group': 'Inflammation'},
+    'uric acid':      {'unit': 'mg/dL',      'male': (3.4, 7.0),   'female': (2.4, 6.0),   'group': 'Metabolic'},
+}
+
+
+@ai_bp.route('/lab-interpreter', methods=['GET', 'POST'])
+@login_required
+def lab_interpreter():
+    results = []
+    if request.method == 'POST':
+        gender = request.form.get('gender', 'both')
+        for key, ref in LAB_NORMALS.items():
+            val_str = request.form.get(key, '').strip()
+            if not val_str:
+                continue
+            try:
+                val = float(val_str)
+            except ValueError:
+                continue
+
+            if 'both' in ref:
+                low, high = ref['both']
+            elif gender == 'male' and 'male' in ref:
+                low, high = ref['male']
+            elif gender == 'female' and 'female' in ref:
+                low, high = ref['female']
+            else:
+                low, high = ref.get('both', ref.get('male', (0, 999)))
+
+            if val < low:
+                status = 'low'
+                color = 'danger'
+                interp = f'Below normal range ({low}–{high} {ref["unit"]})'
+            elif val > high:
+                status = 'high'
+                color = 'warning'
+                interp = f'Above normal range ({low}–{high} {ref["unit"]})'
+            else:
+                status = 'normal'
+                color = 'success'
+                interp = f'Within normal range ({low}–{high} {ref["unit"]})'
+
+            results.append({
+                'name': key.upper().replace('_', ' '),
+                'value': val,
+                'unit': ref['unit'],
+                'status': status,
+                'color': color,
+                'interp': interp,
+                'group': ref.get('group', 'Other'),
+                'note': ref.get('note', ''),
+            })
+
+        # Sort: abnormal first
+        results.sort(key=lambda x: (x['status'] == 'normal', x['group']))
+
+    return render_template('ai/lab_interpreter.html',
+                           lab_normals=LAB_NORMALS, results=results)

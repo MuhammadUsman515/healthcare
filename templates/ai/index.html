@@ -4,93 +4,119 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-4">
   <div>
-    <h4 class="fw-bold mb-0"><i class="fas fa-brain me-2 text-purple"></i>AI Assistant</h4>
-    <small class="text-muted">Smart tools powered by clinical intelligence</small>
+    <h4 class="fw-bold mb-0"><i class="fas fa-brain me-2 text-purple"></i>AI Clinical Assistant</h4>
+    <small class="text-muted">Smart clinical decision support tools — 100% on-premise, no external API</small>
   </div>
 </div>
 
-<div class="row g-4">
-  <!-- Symptom Checker -->
-  <div class="col-md-6 col-lg-3">
-    <a href="{{ url_for('ai.symptom_checker') }}" class="text-decoration-none">
-      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
-        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(124,58,237,.1)">
-          <i class="fas fa-stethoscope fa-2x" style="color:#7c3aed"></i>
+<!-- Hero banner -->
+<div class="card border-0 mb-4" style="background:linear-gradient(135deg,#0f172a 0%,#1a1040 50%,#0f2b1f 100%);color:#fff;border-radius:18px">
+  <div class="card-body p-4 p-md-5">
+    <div class="row align-items-center">
+      <div class="col-md-7">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:52px;height:52px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div>
+            <h4 class="fw-bold mb-0">Clinical Intelligence Engine</h4>
+            <div class="small" style="color:rgba(255,255,255,.5)">BizVinc AI v2.0</div>
+          </div>
         </div>
-        <h5 class="fw-bold mb-2">Symptom Checker</h5>
-        <p class="text-muted small mb-0">Select symptoms to get possible diagnoses and conditions.</p>
-        <div class="mt-3">
-          <span class="badge" style="background:rgba(124,58,237,.15);color:#7c3aed">Try it</span>
-        </div>
-      </div>
-    </a>
-  </div>
-
-  <!-- Drug Interaction Checker -->
-  <div class="col-md-6 col-lg-3">
-    <a href="{{ url_for('ai.drug_checker') }}" class="text-decoration-none">
-      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
-        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(239,68,68,.1)">
-          <i class="fas fa-pills fa-2x" style="color:#ef4444"></i>
-        </div>
-        <h5 class="fw-bold mb-2">Drug Checker</h5>
-        <p class="text-muted small mb-0">Check for dangerous drug-drug interactions before prescribing.</p>
-        <div class="mt-3">
-          <span class="badge" style="background:rgba(239,68,68,.15);color:#ef4444">Try it</span>
+        <p style="color:rgba(255,255,255,.7);font-size:.9rem" class="mb-3">
+          7 AI-powered tools for triage, diagnosis support, drug safety, lab interpretation, and operational insights — built into your HMS workflow.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          {% for label, color in [('Triage','danger'),('Symptoms','purple'),('Drug Safety','cyan'),('Dose Calc','info'),('Lab Interpreter','primary'),('Risk Scoring','warning'),('AI Insights','success')] %}
+          <span class="badge" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);padding:5px 10px">{{ label }}</span>
+          {% endfor %}
         </div>
       </div>
-    </a>
-  </div>
-
-  <!-- AI Insights -->
-  <div class="col-md-6 col-lg-3">
-    <a href="{{ url_for('ai.insights') }}" class="text-decoration-none">
-      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
-        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(37,99,235,.1)">
-          <i class="fas fa-chart-line fa-2x" style="color:#2563eb"></i>
-        </div>
-        <h5 class="fw-bold mb-2">AI Insights</h5>
-        <p class="text-muted small mb-0">Revenue, appointment trends and smart operational recommendations.</p>
-        <div class="mt-3">
-          <span class="badge" style="background:rgba(37,99,235,.15);color:#2563eb">Explore</span>
-        </div>
+      <div class="col-md-5 d-none d-md-flex justify-content-end">
+        <div style="font-size:7rem;opacity:.1"><i class="fas fa-brain"></i></div>
       </div>
-    </a>
-  </div>
-
-  <!-- Risk Scoring -->
-  <div class="col-md-6 col-lg-3">
-    <a href="{{ url_for('patients.index') }}" class="text-decoration-none">
-      <div class="card border-0 shadow-sm h-100 text-center p-4 ai-tool-card">
-        <div class="ai-icon-circle mx-auto mb-3" style="background:rgba(245,158,11,.1)">
-          <i class="fas fa-exclamation-triangle fa-2x" style="color:#f59e0b"></i>
-        </div>
-        <h5 class="fw-bold mb-2">Risk Scoring</h5>
-        <p class="text-muted small mb-0">Patient-level chronic condition risk scores based on medical history.</p>
-        <div class="mt-3">
-          <span class="badge" style="background:rgba(245,158,11,.15);color:#f59e0b">View Patients</span>
-        </div>
-      </div>
-    </a>
-  </div>
-</div>
-
-<div class="card border-0 shadow-sm mt-4" style="background:linear-gradient(135deg,#0f172a,#0f2b1f);color:#fff">
-  <div class="card-body p-4 d-flex align-items-center gap-4">
-    <div style="font-size:3rem;opacity:.6"><i class="fas fa-robot"></i></div>
-    <div>
-      <h5 class="fw-bold mb-1">Clinical Intelligence Engine</h5>
-      <p class="mb-0 small" style="color:rgba(255,255,255,.7)">
-        BizVinc AI uses curated clinical knowledge bases for symptom mapping, drug interactions and
-        patient risk stratification — no external API calls, 100% on-premise data privacy.
-      </p>
     </div>
   </div>
 </div>
 
+<!-- Tool Cards Row 1 -->
+<div class="row g-3 mb-3">
+  {% set tools = [
+    ('AI Triage', 'ambulance', '#ef4444', 'rgba(239,68,68,.1)',
+     'Quick patient severity classification (Critical / Urgent / Routine) based on chief complaint and vitals.',
+     'ai.triage', 'danger', 'Run Triage'),
+    ('Symptom Checker', 'stethoscope', '#7c3aed', 'rgba(124,58,237,.1)',
+     'Select presenting symptoms to get ranked differential diagnoses with confidence scores.',
+     'ai.symptom_checker', 'purple', 'Check Symptoms'),
+    ('Drug Interaction', 'pills', '#06b6d4', 'rgba(6,182,212,.1)',
+     'Enter multiple drugs to detect dangerous interactions, severity levels, and clinical effects.',
+     'ai.drug_checker', 'info', 'Check Drugs'),
+    ('Dose Calculator', 'calculator', '#2563eb', 'rgba(37,99,235,.1)',
+     'Evidence-based dosing for adults and pediatric patients with weight-based calculations.',
+     'ai.dose_calculator', 'primary', 'Calculate Dose'),
+  ] %}
+  {% for title, icon, color, bg, desc, ep, style, btn in tools %}
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100 ai-tool-card">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div style="width:48px;height:48px;border-radius:14px;background:{{ bg }};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-{{ icon }}" style="color:{{ color }};font-size:1.1rem"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">{{ title }}</h6>
+            <p class="text-muted small mb-0" style="line-height:1.4">{{ desc }}</p>
+          </div>
+        </div>
+        <a href="{{ url_for(ep) }}" class="btn btn-sm btn-outline-{{ style }} w-100">
+          <i class="fas fa-arrow-right me-1"></i>{{ btn }}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Tool Cards Row 2 -->
+<div class="row g-3">
+  {% set tools2 = [
+    ('Lab Interpreter', 'flask', '#2563eb', 'rgba(37,99,235,.1)',
+     'Enter CBC, metabolic, liver, lipid, thyroid values — AI flags abnormals with reference ranges.',
+     'ai.lab_interpreter', 'primary', 'Interpret Labs'),
+    ('Patient Risk Score', 'exclamation-triangle', '#f59e0b', 'rgba(245,158,11,.1)',
+     'Automatic chronic-condition risk stratification for all active patients based on medical history.',
+     'patients.index', 'warning', 'View Patients'),
+    ('AI Insights', 'chart-line', '#16a34a', 'rgba(22,163,74,.1)',
+     'Revenue trends, appointment patterns, busiest days, high-risk patient alerts, and smart recommendations.',
+     'ai.insights', 'success', 'View Insights'),
+  ] %}
+  {% for title, icon, color, bg, desc, ep, style, btn in tools2 %}
+  <div class="col-sm-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100 ai-tool-card">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div style="width:48px;height:48px;border-radius:14px;background:{{ bg }};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-{{ icon }}" style="color:{{ color }};font-size:1.1rem"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">{{ title }}</h6>
+            <p class="text-muted small mb-0" style="line-height:1.4">{{ desc }}</p>
+          </div>
+        </div>
+        <a href="{{ url_for(ep) }}" class="btn btn-sm btn-outline-{{ style }} w-100">
+          <i class="fas fa-arrow-right me-1"></i>{{ btn }}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
 <style>
-.ai-tool-card { transition: transform .2s, box-shadow .2s; cursor: pointer; }
-.ai-tool-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.12) !important; }
-.ai-icon-circle { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.ai-tool-card { transition: transform .2s, box-shadow .2s; }
+.ai-tool-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.1) !important; }
+.text-purple { color: #7c3aed !important; }
+.btn-outline-purple { color: #7c3aed !important; border-color: #7c3aed !important; }
+.btn-outline-purple:hover { background: #7c3aed !important; color: #fff !important; }
 </style>
 {% endblock %}

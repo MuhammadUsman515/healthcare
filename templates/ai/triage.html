@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}AI Triage Assistant – {{ hospital_name }}{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-ambulance me-2" style="color:#ef4444"></i>AI Triage Assistant</h4>
+    <small class="text-muted">Quick patient severity classification based on chief complaint & vitals</small>
+  </div>
+  <a href="{{ url_for('ai.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back to AI</a>
+</div>
+
+{% if result %}
+<!-- Result Banner -->
+<div class="card border-0 shadow-sm mb-4 triage-{{ result.severity }}">
+  <div class="card-body p-4">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div style="width:60px;height:60px;border-radius:16px;background:var(--{% if result.severity=='critical' %}red{% elif result.severity=='urgent' %}amber{% else %}green{% endif %});display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.6rem">
+        <i class="fas fa-{% if result.severity=='critical' %}exclamation-circle{% elif result.severity=='urgent' %}exclamation-triangle{% else %}check-circle{% endif %}"></i>
+      </div>
+      <div>
+        <div class="small text-muted mb-1">Triage Category</div>
+        <h3 class="fw-bold mb-0 {% if result.severity=='critical' %}text-danger{% elif result.severity=='urgent' %}text-warning{% else %}text-success{% endif %}">
+          {{ result.label }}
+        </h3>
+      </div>
+      <div class="ms-auto text-end">
+        <div class="small text-muted mb-1">Recommended Action</div>
+        <div class="fw-semibold" style="max-width:300px">{{ result.action }}</div>
+      </div>
+    </div>
+    {% if result.chief %}
+    <div class="bg-light rounded p-3 small">
+      <span class="text-muted">Chief Complaint:</span> <strong>{{ result.chief }}</strong>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if result.vitals_flags %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-3"><i class="fas fa-heartbeat me-2 text-danger"></i>Abnormal Vitals Detected</h6>
+    <div class="row g-2">
+      {% for flag in result.vitals_flags %}
+      <div class="col-auto">
+        <div class="alert alert-{{ flag.color }} py-2 px-3 mb-0 d-flex align-items-center gap-2">
+          <i class="fas fa-exclamation-circle"></i>
+          <div><strong>{{ flag.label }}:</strong> {{ flag.value }} — {{ flag.flag }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="row g-4">
+  <!-- Triage Form -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-4"><i class="fas fa-clipboard-list me-2" style="color:#7c3aed"></i>Patient Assessment Form</h6>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Chief Complaint / Presenting Symptoms <span class="text-danger">*</span></label>
+            <textarea name="chief_complaint" class="form-control" rows="3" required
+              placeholder="e.g. severe chest pain radiating to left arm, started 30 mins ago">{{ request.form.get('chief_complaint','') }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold"><i class="fas fa-heartbeat me-1 text-danger"></i>Vitals <span class="text-muted fw-normal">(leave blank if unknown)</span></label>
+            <div class="row g-2">
+              <div class="col-6 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0">HR</span>
+                  <input type="number" name="hr" class="form-control border-start-0" placeholder="e.g. 88" value="{{ request.form.get('hr','') }}" min="20" max="300">
+                  <span class="input-group-text bg-light">bpm</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0">SBP</span>
+                  <input type="number" name="sbp" class="form-control border-start-0" placeholder="e.g. 120" value="{{ request.form.get('sbp','') }}">
+                  <span class="input-group-text bg-light">mmHg</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0">DBP</span>
+                  <input type="number" name="dbp" class="form-control border-start-0" placeholder="e.g. 80" value="{{ request.form.get('dbp','') }}">
+                  <span class="input-group-text bg-light">mmHg</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0">SpO₂</span>
+                  <input type="number" name="spo2" class="form-control border-start-0" placeholder="e.g. 98" value="{{ request.form.get('spo2','') }}" min="1" max="100">
+                  <span class="input-group-text bg-light">%</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0">RR</span>
+                  <input type="number" name="rr" class="form-control border-start-0" placeholder="e.g. 16" value="{{ request.form.get('rr','') }}">
+                  <span class="input-group-text bg-light">/min</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0">Temp</span>
+                  <input type="number" step="0.1" name="temp" class="form-control border-start-0" placeholder="e.g. 37.5" value="{{ request.form.get('temp','') }}">
+                  <span class="input-group-text bg-light">°C</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 py-2">
+            <i class="fas fa-brain me-2"></i>Run AI Triage
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Triage Guide -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Triage Categories</h6>
+        <div class="d-flex flex-column gap-3">
+          <div class="rounded-3 p-3 triage-critical">
+            <div class="fw-bold text-danger mb-1"><i class="fas fa-circle me-1"></i>CRITICAL — Immediate</div>
+            <div class="small text-muted">Chest pain, stroke, respiratory distress, unconsciousness, shock</div>
+          </div>
+          <div class="rounded-3 p-3 triage-urgent">
+            <div class="fw-bold text-warning mb-1"><i class="fas fa-circle me-1"></i>URGENT — Within 1 Hour</div>
+            <div class="small text-muted">High fever, severe pain, GI bleeding, hypoglycemia, major trauma</div>
+          </div>
+          <div class="rounded-3 p-3 triage-routine">
+            <div class="fw-bold text-success mb-1"><i class="fas fa-circle me-1"></i>ROUTINE — Standard Queue</div>
+            <div class="small text-muted">Mild fever, cough, headache, skin rash, general checkup</div>
+          </div>
+        </div>
+        <div class="alert alert-info mt-3 mb-0 small">
+          <i class="fas fa-info-circle me-1"></i>
+          This tool is a clinical decision support aid. Final triage decisions must be made by a qualified clinician.
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body p-3">
+        <h6 class="fw-semibold mb-3 small text-muted text-uppercase">Quick Triage Patients</h6>
+        {% for p in patients[:6] %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="avatar-sm flex-shrink-0" style="width:28px;height:28px;font-size:.65rem">
+            {{ p.full_name[0] }}
+          </div>
+          <div class="flex-grow-1 small">
+            <div class="fw-semibold">{{ p.full_name }}</div>
+            <div class="text-muted" style="font-size:.7rem">Age {{ p.age or '?' }} · {{ p.gender or 'Unknown' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
