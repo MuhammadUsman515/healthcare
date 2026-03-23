@@ -1,79 +1,162 @@
 {% extends 'base.html' %}
-{% block title %}Lab Management - MediCare HMS{% endblock %}
+{% block title %}Laboratory – {{ hospital_name }}{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
-<li class="breadcrumb-item active">Lab</li>
+<li class="breadcrumb-item active">Laboratory</li>
 {% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1">Laboratory Management</h4>
-        <p class="text-muted mb-0 small">Manage lab tests and results</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('lab.catalog') }}" class="btn btn-outline-primary">
-            <i class="fas fa-book me-1"></i>Test Catalog
-        </a>
-        <a href="{{ url_for('lab.orders') }}" class="btn btn-primary">
-            <i class="fas fa-flask me-1"></i>All Orders
-        </a>
-    </div>
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-microscope me-2" style="color:#06b6d4"></i>Laboratory Management</h4>
+    <small class="text-muted">Test orders and results</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('lab.catalog') }}" class="btn btn-outline-info btn-sm"><i class="fas fa-book me-1"></i>Test Catalog</a>
+    <a href="{{ url_for('lab.orders') }}" class="btn btn-primary btn-sm"><i class="fas fa-flask me-1"></i>All Orders</a>
+  </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0"><i class="fas fa-clock me-2 text-warning"></i>Pending Tests ({{ pending|length }})</h6>
-                <a href="{{ url_for('lab.orders', status='pending') }}" class="btn btn-sm btn-outline-warning">View All</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 small">
-                    <thead class="table-light">
-                        <tr><th>Patient</th><th>Test</th><th>Date</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for test in pending[:10] %}
-                        <tr>
-                            <td>{{ test.medical_record.patient.full_name }}</td>
-                            <td>{{ test.test_name }}</td>
-                            <td>{{ test.test_date.strftime('%b %d') if test.test_date else '-' }}</td>
-                            <td>
-                                <a href="{{ url_for('lab.enter_result', id=test.id) }}" class="btn btn-xs btn-primary btn-sm">Enter Result</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="4" class="text-center text-muted py-3">No pending tests.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-gradient-amber text-white"><i class="fas fa-hourglass-half"></i></div>
+        <div>
+          <div class="fw-bold fs-4 text-warning">{{ pending|length }}</div>
+          <div class="small text-muted">Pending</div>
         </div>
+      </div>
     </div>
-    <div class="col-lg-5">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0"><i class="fas fa-check-circle me-2 text-success"></i>Recently Completed</h6>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 small">
-                    <thead class="table-light">
-                        <tr><th>Patient</th><th>Test</th><th>Result</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for test in recent_completed %}
-                        <tr>
-                            <td>{{ test.medical_record.patient.full_name }}</td>
-                            <td>{{ test.test_name }}</td>
-                            <td>{{ test.result[:20] if test.result else '-' }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="3" class="text-center text-muted py-3">No completed tests.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-check-double"></i></div>
+        <div>
+          <div class="fw-bold fs-4 text-success">{{ recent_completed|length }}</div>
+          <div class="small text-muted">Recent Completed</div>
         </div>
+      </div>
     </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-gradient-cyan text-white"><i class="fas fa-flask"></i></div>
+        <div>
+          <div class="fw-bold fs-4">{{ pending|length + recent_completed|length }}</div>
+          <div class="small text-muted">Total Tests</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 h-100">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon bg-gradient-blue text-white"><i class="fas fa-vial"></i></div>
+        <div>
+          {% if (pending|length + recent_completed|length) > 0 %}
+          <div class="fw-bold fs-4">{{ ((recent_completed|length / (pending|length + recent_completed|length)) * 100)|round|int }}%</div>
+          {% else %}
+          <div class="fw-bold fs-4">—</div>
+          {% endif %}
+          <div class="small text-muted">Completion Rate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Pending Tests -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-0">
+        <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+          <h6 class="fw-bold mb-0"><i class="fas fa-hourglass-half me-2 text-warning"></i>Pending Tests</h6>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning text-dark">{{ pending|length }}</span>
+            <a href="{{ url_for('lab.orders', status='pending') }}" class="btn btn-sm btn-outline-warning">View All</a>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Patient</th>
+                <th>Test</th>
+                <th>Date</th>
+                <th class="pe-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for test in pending[:10] %}
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-sm" style="width:26px;height:26px;font-size:.65rem">{{ test.medical_record.patient.full_name[0] }}</div>
+                    <span class="fw-medium">{{ test.medical_record.patient.full_name }}</span>
+                  </div>
+                </td>
+                <td><span class="badge bg-cyan-soft text-cyan">{{ test.test_name }}</span></td>
+                <td class="text-muted">{{ test.test_date.strftime('%d %b') if test.test_date else '—' }}</td>
+                <td class="pe-4 text-center">
+                  <a href="{{ url_for('lab.enter_result', id=test.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-pen me-1"></i>Enter Result
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">
+                  <i class="fas fa-check-circle fa-2x text-success opacity-50 mb-2 d-block"></i>
+                  No pending tests — all clear!
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recently Completed -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-0">
+        <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+          <h6 class="fw-bold mb-0"><i class="fas fa-check-circle me-2 text-success"></i>Recently Completed</h6>
+          <span class="badge bg-success">{{ recent_completed|length }}</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Patient</th>
+                <th>Test</th>
+                <th class="pe-4">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for test in recent_completed %}
+              <tr>
+                <td class="ps-4 fw-medium">{{ test.medical_record.patient.full_name }}</td>
+                <td class="text-muted">{{ test.test_name }}</td>
+                <td class="pe-4 small text-muted">{{ (test.result or '—')[:25] }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="3" class="text-center py-4 text-muted">No completed tests yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
