@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+{% block title %}AI Chatbot – {{ hospital_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-robot me-2" style="color:#7c3aed"></i>HMS AI Assistant</h4>
+    <small class="text-muted">Ask anything about patients, appointments, billing, labs…</small>
+  </div>
+  <a href="{{ url_for('ai.index') }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>AI Tools</a>
+</div>
+
+<div class="row g-3" style="height:calc(100vh - 200px);min-height:520px">
+
+  <!-- Sidebar: quick patients -->
+  <div class="col-lg-3 d-none d-lg-flex flex-column gap-2">
+    <div class="card border-0 shadow-sm flex-grow-1" style="overflow:hidden">
+      <div class="px-3 py-2 border-bottom">
+        <div class="small fw-bold text-muted text-uppercase" style="letter-spacing:.08em">Quick Access</div>
+      </div>
+      <div class="p-2" style="overflow-y:auto">
+        <div class="small fw-semibold text-muted px-1 mb-1">Recent Patients</div>
+        {% for p in recent_patients %}
+        <button class="quick-patient-btn w-100 text-start mb-1" onclick="setMsg('{{ p.full_name }}')">
+          <span class="avatar-init-sm">{{ p.full_name[0] }}</span>
+          <div>
+            <div class="small fw-semibold">{{ p.full_name }}</div>
+            <div style="font-size:.7rem;color:#94a3b8">{{ p.patient_id }}</div>
+          </div>
+        </button>
+        {% endfor %}
+
+        <hr class="my-2">
+        <div class="small fw-semibold text-muted px-1 mb-1">Quick Commands</div>
+        {% for cmd in ["Today's stats", "Hospital overview", "Admitted patients", "Pending labs", "Show all doctors"] %}
+        <button class="quick-cmd-btn w-100 text-start mb-1" onclick="sendQuick('{{ cmd }}')">
+          <i class="fas fa-bolt me-1" style="color:#f59e0b;font-size:.7rem"></i>{{ cmd }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Window -->
+  <div class="col-lg-9 d-flex flex-column" style="height:100%">
+    <div class="card border-0 shadow-sm d-flex flex-column" style="height:100%;overflow:hidden">
+
+      <!-- Chat header -->
+      <div class="px-4 py-3 border-bottom d-flex align-items-center gap-3" style="flex-shrink:0">
+        <div style="width:40px;height:40px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div>
+          <div class="fw-bold">BizVinc HMS Bot</div>
+          <div class="d-flex align-items-center gap-1">
+            <span style="width:7px;height:7px;background:#16a34a;border-radius:50%;animation:pulse-dot 2s infinite"></span>
+            <span class="small text-success">Online — ready to help</span>
+          </div>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()" title="Clear chat">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div id="chat-messages" class="flex-grow-1 p-3 p-md-4" style="overflow-y:auto;background:#f8fafc">
+        <!-- Welcome message -->
+        <div class="chat-msg bot" id="welcome-msg">
+          <div class="bot-avatar"><i class="fas fa-robot"></i></div>
+          <div class="msg-bubble bot-bubble">
+            <div class="fw-semibold mb-2">👋 Assalam o Alaikum! Main HMS AI Assistant hoon.</div>
+            <p class="mb-2 small">Aap mujhse patient ka poora data pooch sakte hain:</p>
+            <div class="bot-quick-list">
+              <span>Patient ka naam ya ID</span>
+              <span>Appointments, Bills, Lab results</span>
+              <span>Medical records & history</span>
+              <span>Aaj ka hospital stats</span>
+            </div>
+            <div class="mt-2 small text-muted">💡 Try: <em>"Bob Fisher ka data"</em> ya <em>"today's stats"</em></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick replies bar -->
+      <div id="quick-bar" class="px-3 py-2 border-top d-flex gap-2 flex-wrap" style="flex-shrink:0;background:#fff;min-height:44px">
+        <button class="quick-reply-btn" onclick="sendQuick('Today stats')">📊 Today stats</button>
+        <button class="quick-reply-btn" onclick="sendQuick('Hospital overview')">🏥 Overview</button>
+        <button class="quick-reply-btn" onclick="sendQuick('help')">❓ Help</button>
+      </div>
+
+      <!-- Input -->
+      <div class="p-3 border-top" style="flex-shrink:0;background:#fff">
+        <div class="d-flex gap-2 align-items-end">
+          <div class="flex-grow-1">
+            <textarea id="chat-input" class="form-control" rows="1"
+              placeholder="Patient ka naam type karen, ya koi sawaal pochen…"
+              style="resize:none;border-radius:12px;padding:10px 14px;line-height:1.5;max-height:100px"></textarea>
+          </div>
+          <button id="send-btn" class="btn btn-primary" style="border-radius:12px;width:46px;height:46px;flex-shrink:0;padding:0" onclick="sendMessage()">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div class="small text-muted mt-1" style="font-size:.72rem">
+          Enter to send · Shift+Enter for new line · Urdu/Roman Urdu & English dono chalte hain
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ── Chat layout ─────────────────────────────────── */
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ── Messages ────────────────────────────────────── */
+.chat-msg { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start; }
+.chat-msg.user { flex-direction: row-reverse; }
+
+.bot-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#7c3aed,#a855f7);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .8rem;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#34694f,#2d9d72);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .8rem; font-weight: 700;
+}
+
+.msg-bubble {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: .875rem;
+  line-height: 1.5;
+}
+.bot-bubble {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px 16px 16px 16px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.user-bubble {
+  background: linear-gradient(135deg,#34694f,#2d9d72);
+  color: #fff;
+  border-radius: 16px 4px 16px 16px !important;
+}
+
+/* ── Typing indicator ────────────────────────────── */
+.typing-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.typing-dots span {
+  width: 7px; height: 7px; border-radius: 50%; background: #94a3b8;
+  animation: typing-bounce .9s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: .15s; }
+.typing-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+
+/* ── Bot card components ─────────────────────────── */
+.bot-card {
+  border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;
+  margin: 4px 0; background: #fff; font-size: .82rem;
+}
+.bot-card-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+}
+.bot-card-body { padding: 12px 14px; }
+.bot-card-footer {
+  padding: 8px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+  display: flex; gap: 12px;
+}
+.bot-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+}
+.bot-info-grid > div { display: flex; gap: 6px; align-items: center; }
+.bot-info-grid .label { color: #94a3b8; font-size: .75rem; min-width: 60px; }
+.bot-table-wrap { overflow-x: auto; }
+.bot-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.bot-table th { padding: 6px 10px; background: #f1f5f9; color: #64748b; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.bot-table td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; }
+.bot-table tr:last-child td { border-bottom: none; }
+.bot-table tr:hover td { background: #f8fafc; }
+.bot-link { color: #34694f; font-size: .78rem; font-weight: 600; text-decoration: none; }
+.bot-link:hover { color: #2d5c44; text-decoration: underline; }
+.bot-alert { background: #fff7ed; border-left: 3px solid #f59e0b; padding: 6px 10px; margin: 4px 0; border-radius: 0 6px 6px 0; font-size: .78rem; }
+.bot-alert-warn { background: #fff7ed; border-left: 3px solid #f59e0b; padding: 6px 10px; margin: 4px 0; border-radius: 0 6px 6px 0; font-size: .78rem; }
+.bot-alert-danger { background: #fef2f2; border-left: 3px solid #ef4444; padding: 6px 10px; margin: 4px 0; border-radius: 0 6px 6px 0; font-size: .78rem; color: #b91c1c; }
+.bot-ok { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 6px 10px; margin: 4px 0; border-radius: 0 6px 6px 0; font-size: .78rem; color: #15803d; }
+.bot-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; padding: 8px 0; }
+.bot-stat { border-radius: 10px; padding: 10px; text-align: center; }
+.bot-stat .num { font-size: 1.2rem; font-weight: 800; }
+.bot-stat .lbl { font-size: .65rem; margin-top: 2px; opacity: .85; }
+.bot-stat.blue   { background: rgba(37,99,235,.12);  color: #1d4ed8; }
+.bot-stat.green  { background: rgba(52,105,79,.12);  color: #34694f; }
+.bot-stat.amber  { background: rgba(245,158,11,.12); color: #b45309; }
+.bot-stat.purple { background: rgba(124,58,237,.12); color: #6d28d9; }
+.bot-stat.cyan   { background: rgba(6,182,212,.12);  color: #0e7490; }
+.bot-stat.red    { background: rgba(239,68,68,.12);  color: #b91c1c; }
+.bot-record-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.bot-record-date { font-size: .72rem; color: #94a3b8; margin-bottom: 4px; font-weight: 600; }
+.bot-vitals { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.bot-vitals span { background: #f1f5f9; padding: 2px 8px; border-radius: 5px; font-size: .72rem; color: #475569; }
+.bot-not-found { text-align: center; padding: 12px; color: #94a3b8; }
+.bot-match-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: background .15s; }
+.bot-match-item:hover { background: #f8fafc; }
+.bot-quick-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.bot-quick-list span { background: rgba(124,58,237,.08); color: #7c3aed; padding: 3px 10px; border-radius: 20px; font-size: .75rem; }
+
+/* ── Sidebar buttons ─────────────────────────────── */
+.quick-patient-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: 1px solid transparent; border-radius: 8px;
+  padding: 6px 8px; cursor: pointer; transition: all .15s;
+  color: #1e293b; text-align: left;
+}
+.quick-patient-btn:hover { background: #f1f5f9; border-color: #e2e8f0; }
+.quick-cmd-btn {
+  background: none; border: 1px solid #e2e8f0; border-radius: 7px;
+  padding: 5px 10px; font-size: .78rem; cursor: pointer; color: #475569;
+  transition: all .15s;
+}
+.quick-cmd-btn:hover { background: #f8fafc; color: #34694f; border-color: #34694f; }
+
+/* ── Quick reply chips ───────────────────────────── */
+.quick-reply-btn {
+  background: rgba(52,105,79,.08); color: #34694f;
+  border: 1px solid rgba(52,105,79,.2); border-radius: 20px;
+  padding: 4px 14px; font-size: .78rem; font-weight: 600;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.quick-reply-btn:hover { background: #34694f; color: #fff; }
+
+.avatar-init { width: 30px; height: 30px; background: linear-gradient(135deg,#34694f,#2d9d72); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .75rem; flex-shrink: 0; }
+.avatar-init-sm { width: 26px; height: 26px; background: linear-gradient(135deg,#34694f,#2d9d72); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .68rem; flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .msg-bubble { max-width: 92%; }
+  .bot-info-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+{% block scripts %}
+<script>
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const quickBar = document.getElementById('quick-bar');
+const userName = "{{ current_user.username[0]|upper }}";
+
+function scrollBottom() {
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function appendMsg(html, isUser = false) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (isUser ? 'user fade-in-up' : 'bot fade-in-up');
+  if (isUser) {
+    div.innerHTML = `
+      <div class="user-avatar">${userName}</div>
+      <div class="msg-bubble user-bubble">${html}</div>`;
+  } else {
+    div.innerHTML = `
+      <div class="bot-avatar"><i class="fas fa-robot"></i></div>
+      <div class="msg-bubble bot-bubble">${html}</div>`;
+  }
+  chatMessages.appendChild(div);
+  scrollBottom();
+  return div;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'chat-msg bot';
+  div.id = 'typing-indicator';
+  div.innerHTML = `<div class="bot-avatar"><i class="fas fa-robot"></i></div>
+    <div class="msg-bubble bot-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  chatMessages.appendChild(div);
+  scrollBottom();
+}
+
+function removeTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+function setQuickReplies(replies) {
+  quickBar.innerHTML = '';
+  if (!replies || !replies.length) return;
+  replies.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-reply-btn';
+    btn.textContent = r;
+    btn.onclick = () => sendQuick(r);
+    quickBar.appendChild(btn);
+  });
+}
+
+async function sendMessage() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  quickBar.innerHTML = '';
+
+  appendMsg(msg.replace(/</g,'&lt;').replace(/>/g,'&gt;'), true);
+  showTyping();
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const res = await fetch('{{ url_for("ai.chat_message") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: msg})
+    });
+    const data = await res.json();
+    removeTyping();
+    appendMsg(data.html);
+    setQuickReplies(data.quick || []);
+  } catch(e) {
+    removeTyping();
+    appendMsg('<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Connection error. Please try again.</span>');
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    chatInput.focus();
+  }
+}
+
+function sendQuick(text) {
+  chatInput.value = text;
+  sendMessage();
+}
+
+function setMsg(text) {
+  chatInput.value = text;
+  chatInput.focus();
+}
+
+function clearChat() {
+  chatMessages.innerHTML = '';
+  quickBar.innerHTML = '';
+  appendMsg(`<div class="fw-semibold mb-1">Chat cleared. Dobara poochein!</div>
+    <div class="small text-muted">Type a patient name or command to start.</div>`);
+}
+
+// Auto-resize textarea
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Send on Enter (Shift+Enter = newline)
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+scrollBottom();
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify
-from flask_login import login_required
-from models import db, Patient, MedicalRecord, Appointment, Bill
-from datetime import datetime, timedelta
-from sqlalchemy import func
+from flask_login import login_required, current_user
+from models import (db, Patient, MedicalRecord, Appointment, Bill, BillItem,
+                    Doctor, LabTest, Admission, OPDQueue, Prescription,
+                    BloodRequest, BloodInventory, Staff, Ward, Bed)
+from datetime import datetime, date, timedelta
+from sqlalchemy import func, or_
 
 ai_bp = Blueprint('ai', __name__, url_prefix='/ai')
 
@@ -543,3 +545,399 @@ def lab_interpreter():
 
     return render_template('ai/lab_interpreter.html',
                            lab_normals=LAB_NORMALS, results=results)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  HMS CHATBOT
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _find_patients(query_text):
+    """Search patients by name or ID from free text."""
+    q = query_text.strip()
+    results = Patient.query.filter(
+        or_(
+            Patient.first_name.ilike(f'%{q}%'),
+            Patient.last_name.ilike(f'%{q}%'),
+            Patient.patient_id.ilike(f'%{q}%'),
+            Patient.phone.ilike(f'%{q}%'),
+            (Patient.first_name + ' ' + Patient.last_name).ilike(f'%{q}%'),
+        )
+    ).all()
+    return results
+
+
+def _patient_card(p):
+    """Build HTML card for a single patient."""
+    risk = calculate_risk_score(p)
+    risk_color = 'success' if risk < 30 else 'warning' if risk < 60 else 'danger'
+    apts = len(p.appointments)
+    bills = p.bills
+    outstanding = sum(
+        (b.total_amount or 0) - (b.paid_amount or 0) for b in bills
+        if b.payment_status in ('unpaid', 'partial')
+    )
+    return f"""
+<div class="bot-card">
+  <div class="bot-card-header">
+    <span class="avatar-init">{p.full_name[0]}</span>
+    <div>
+      <div class="fw-bold">{p.full_name}</div>
+      <div class="small text-muted">{p.patient_id}</div>
+    </div>
+    <span class="badge bg-{risk_color} ms-auto">Risk: {risk}%</span>
+  </div>
+  <div class="bot-card-body">
+    <div class="bot-info-grid">
+      <div><span class="label">Age</span><span>{p.age}y</span></div>
+      <div><span class="label">Gender</span><span>{p.gender or '—'}</span></div>
+      <div><span class="label">Blood</span><span class="text-danger fw-bold">{p.blood_group or '—'}</span></div>
+      <div><span class="label">Phone</span><span>{p.phone}</span></div>
+      <div><span class="label">Status</span><span class="badge bg-{'success' if p.status=='active' else 'secondary'}">{p.status}</span></div>
+      <div><span class="label">Appointments</span><span>{apts}</span></div>
+    </div>
+    {'<div class="bot-alert">⚠️ Conditions: ' + p.chronic_conditions + '</div>' if p.chronic_conditions else ''}
+    {'<div class="bot-alert-warn">💊 Allergies: ' + p.allergies + '</div>' if p.allergies else ''}
+    {'<div class="bot-alert-danger">💳 Outstanding: PKR {:,.0f}</div>'.format(outstanding) if outstanding > 0 else ''}
+  </div>
+  <div class="bot-card-footer">
+    <a href="/patients/{p.id}" class="bot-link">View Full Profile →</a>
+    <a href="/appointments/new?patient_id={p.id}" class="bot-link">+ Book Appointment</a>
+  </div>
+</div>"""
+
+
+def _patient_appointments(p):
+    apts = Appointment.query.filter_by(patient_id=p.id)\
+                            .order_by(Appointment.appointment_date.desc()).limit(5).all()
+    if not apts:
+        return f"<p>No appointments found for <strong>{p.full_name}</strong>.</p>"
+    rows = ""
+    for a in apts:
+        status_color = {'scheduled':'warning','completed':'success','cancelled':'danger','no-show':'secondary'}.get(a.status,'secondary')
+        rows += f"""<tr>
+          <td>{a.appointment_date.strftime('%d %b %Y')}</td>
+          <td>{a.appointment_time}</td>
+          <td>{a.doctor.full_name}</td>
+          <td><span class="badge bg-{status_color} {'text-dark' if status_color=='warning' else ''}">{a.status}</span></td>
+        </tr>"""
+    return f"""
+<div class="bot-card">
+  <div class="bot-card-header"><span class="avatar-init">{p.full_name[0]}</span>
+    <div><div class="fw-bold">{p.full_name} — Appointments</div><div class="small text-muted">Last 5 records</div></div>
+  </div>
+  <div class="bot-table-wrap">
+    <table class="bot-table"><thead><tr><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th></tr></thead>
+    <tbody>{rows}</tbody></table>
+  </div>
+  <div class="bot-card-footer"><a href="/appointments/?patient_id={p.id}" class="bot-link">View All Appointments →</a></div>
+</div>"""
+
+
+def _patient_bills(p):
+    bills = Bill.query.filter_by(patient_id=p.id).order_by(Bill.bill_date.desc()).limit(5).all()
+    if not bills:
+        return f"<p>No billing records for <strong>{p.full_name}</strong>.</p>"
+    rows = ""
+    total_out = 0
+    for b in bills:
+        outstanding = (b.total_amount or 0) - (b.paid_amount or 0)
+        if b.payment_status in ('unpaid','partial'):
+            total_out += outstanding
+        rows += f"""<tr>
+          <td>{b.bill_number}</td>
+          <td>{b.bill_date.strftime('%d %b %Y')}</td>
+          <td>PKR {b.total_amount:,.0f}</td>
+          <td>PKR {b.paid_amount or 0:,.0f}</td>
+          <td><span class="badge bg-{'success' if b.payment_status=='paid' else 'danger' if b.payment_status=='unpaid' else 'warning text-dark'}">{b.payment_status}</span></td>
+        </tr>"""
+    summary = f'<div class="bot-alert-danger">Total Outstanding: PKR {total_out:,.0f}</div>' if total_out > 0 else '<div class="bot-ok">✅ All bills paid</div>'
+    return f"""
+<div class="bot-card">
+  <div class="bot-card-header"><span class="avatar-init">{p.full_name[0]}</span>
+    <div><div class="fw-bold">{p.full_name} — Billing</div></div>
+  </div>
+  {summary}
+  <div class="bot-table-wrap">
+    <table class="bot-table"><thead><tr><th>Bill #</th><th>Date</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+    <tbody>{rows}</tbody></table>
+  </div>
+  <div class="bot-card-footer"><a href="/billing/?patient_id={p.id}" class="bot-link">View All Bills →</a></div>
+</div>"""
+
+
+def _patient_labs(p):
+    tests = LabTest.query.join(MedicalRecord).filter(MedicalRecord.patient_id == p.id)\
+                         .order_by(LabTest.test_date.desc()).limit(8).all()
+    if not tests:
+        return f"<p>No lab tests found for <strong>{p.full_name}</strong>.</p>"
+    rows = ""
+    for t in tests:
+        rows += f"""<tr>
+          <td>{t.test_name}</td>
+          <td>{t.test_date.strftime('%d %b %Y') if t.test_date else '—'}</td>
+          <td>{(t.result or '—')[:30]}</td>
+          <td><span class="badge bg-{'success' if t.status=='completed' else 'warning text-dark'}">{t.status}</span></td>
+        </tr>"""
+    return f"""
+<div class="bot-card">
+  <div class="bot-card-header"><span class="avatar-init">{p.full_name[0]}</span>
+    <div><div class="fw-bold">{p.full_name} — Lab Tests</div></div>
+  </div>
+  <div class="bot-table-wrap">
+    <table class="bot-table"><thead><tr><th>Test</th><th>Date</th><th>Result</th><th>Status</th></tr></thead>
+    <tbody>{rows}</tbody></table>
+  </div>
+</div>"""
+
+
+def _patient_records(p):
+    records = MedicalRecord.query.filter_by(patient_id=p.id)\
+                                 .order_by(MedicalRecord.visit_date.desc()).limit(3).all()
+    if not records:
+        return f"<p>No medical records for <strong>{p.full_name}</strong>.</p>"
+    html = f'<div class="fw-bold mb-2">{p.full_name} — Medical Records</div>'
+    for r in records:
+        html += f"""<div class="bot-record-card">
+          <div class="bot-record-date">{r.visit_date.strftime('%d %b %Y')} · Dr. {r.doctor.full_name if r.doctor else '—'}</div>
+          {'<div><strong>Diagnosis:</strong> ' + r.diagnosis + '</div>' if r.diagnosis else ''}
+          {'<div><strong>Complaint:</strong> ' + r.chief_complaint + '</div>' if r.chief_complaint else ''}
+          {'<div><strong>Treatment:</strong> ' + (r.treatment_plan or '')[:80] + '</div>' if r.treatment_plan else ''}
+          <div class="bot-vitals">
+            {'<span>BP: ' + r.vitals_bp + '</span>' if r.vitals_bp else ''}
+            {'<span>Pulse: ' + r.vitals_pulse + '</span>' if r.vitals_pulse else ''}
+            {'<span>Temp: ' + r.vitals_temperature + '°C</span>' if r.vitals_temperature else ''}
+            {'<span>O₂: ' + r.vitals_oxygen + '%</span>' if r.vitals_oxygen else ''}
+            {'<span>Wt: ' + r.vitals_weight + 'kg</span>' if r.vitals_weight else ''}
+          </div>
+        </div>"""
+    return html
+
+
+def _today_stats():
+    today = date.today()
+    apts = Appointment.query.filter_by(appointment_date=today).count()
+    scheduled = Appointment.query.filter_by(appointment_date=today, status='scheduled').count()
+    completed = Appointment.query.filter_by(appointment_date=today, status='completed').count()
+    opd = OPDQueue.query.filter(func.date(OPDQueue.check_in_time) == today).count()
+    admitted = Admission.query.filter_by(status='admitted').count()
+    pending_labs = LabTest.query.filter_by(status='pending').count()
+    total_patients = Patient.query.filter_by(status='active').count()
+    return f"""
+<div class="bot-stats-grid">
+  <div class="bot-stat blue"><div class="num">{apts}</div><div class="lbl">Appointments Today</div></div>
+  <div class="bot-stat amber"><div class="num">{scheduled}</div><div class="lbl">Scheduled</div></div>
+  <div class="bot-stat green"><div class="num">{completed}</div><div class="lbl">Completed</div></div>
+  <div class="bot-stat cyan"><div class="num">{opd}</div><div class="lbl">OPD Patients</div></div>
+  <div class="bot-stat purple"><div class="num">{admitted}</div><div class="lbl">Admitted</div></div>
+  <div class="bot-stat red"><div class="num">{pending_labs}</div><div class="lbl">Pending Labs</div></div>
+  <div class="bot-stat green"><div class="num">{total_patients}</div><div class="lbl">Active Patients</div></div>
+</div>
+<div class="small text-muted mt-2">📅 {today.strftime('%A, %d %B %Y')}</div>"""
+
+
+def _hospital_stats():
+    total_p = Patient.query.count()
+    active_p = Patient.query.filter_by(status='active').count()
+    doctors = Doctor.query.filter_by(status='active').count()
+    total_beds = Bed.query.count()
+    available_beds = Bed.query.filter_by(status='available').count()
+    blood_units = db.session.query(func.sum(BloodInventory.units_available)).scalar() or 0
+    total_bills = db.session.query(func.sum(Bill.total_amount)).scalar() or 0
+    paid = db.session.query(func.sum(Bill.paid_amount)).scalar() or 0
+    return f"""
+<div class="bot-card">
+  <div class="bot-card-header"><span style="font-size:1.5rem">🏥</span>
+    <div><div class="fw-bold">Hospital Overview</div></div>
+  </div>
+  <div class="bot-stats-grid">
+    <div class="bot-stat blue"><div class="num">{total_p}</div><div class="lbl">Total Patients</div></div>
+    <div class="bot-stat green"><div class="num">{active_p}</div><div class="lbl">Active</div></div>
+    <div class="bot-stat purple"><div class="num">{doctors}</div><div class="lbl">Doctors</div></div>
+    <div class="bot-stat cyan"><div class="num">{total_beds}</div><div class="lbl">Total Beds</div></div>
+    <div class="bot-stat green"><div class="num">{available_beds}</div><div class="lbl">Available Beds</div></div>
+    <div class="bot-stat red"><div class="num">{int(blood_units)}</div><div class="lbl">Blood Units</div></div>
+    <div class="bot-stat amber"><div class="num">PKR {total_bills/1000:.0f}K</div><div class="lbl">Total Billed</div></div>
+    <div class="bot-stat green"><div class="num">PKR {paid/1000:.0f}K</div><div class="lbl">Collected</div></div>
+  </div>
+</div>"""
+
+
+def _doctor_info(query_text):
+    docs = Doctor.query.filter(
+        or_(Doctor.first_name.ilike(f'%{query_text}%'),
+            Doctor.last_name.ilike(f'%{query_text}%'),
+            Doctor.specialization.ilike(f'%{query_text}%'))
+    ).all()
+    if not docs:
+        return f"<p>No doctors found matching <strong>{query_text}</strong>.</p>"
+    rows = ""
+    for d in docs:
+        total_apts = Appointment.query.filter_by(doctor_id=d.id).count()
+        rows += f"""<div class="bot-record-card">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="avatar-init">{d.full_name[0]}</span>
+            <div><div class="fw-bold">{d.full_name}</div>
+            <div class="small text-muted">{d.specialization or '—'} · {d.department.name if d.department else '—'}</div></div>
+          </div>
+          <div class="bot-vitals">
+            <span>📞 {d.phone or '—'}</span>
+            <span>📋 {total_apts} appointments</span>
+            <span class="badge bg-{'success' if d.status=='active' else 'secondary'}">{d.status}</span>
+          </div>
+        </div>"""
+    return f'<div class="fw-bold mb-2">Found {len(docs)} doctor(s):</div>' + rows
+
+
+HELP_MSG = """
+<div class="bot-card">
+  <div class="bot-card-header"><span style="font-size:1.4rem">🤖</span>
+    <div><div class="fw-bold">HMS AI Assistant</div><div class="small text-muted">What can I help you with?</div></div>
+  </div>
+  <div class="bot-card-body">
+    <div class="fw-semibold mb-2">Ask me about patients:</div>
+    <div class="bot-quick-list">
+      <span>Show patient John Smith</span>
+      <span>P123456 ka data</span>
+      <span>Bob ka appointments</span>
+      <span>Alice ki bills</span>
+      <span>Xavier ka lab results</span>
+      <span>Frank ki medical records</span>
+    </div>
+    <div class="fw-semibold mb-2 mt-3">Hospital stats:</div>
+    <div class="bot-quick-list">
+      <span>Aaj ka stats</span>
+      <span>Today's appointments</span>
+      <span>Hospital overview</span>
+      <span>Kitne patients hain</span>
+    </div>
+    <div class="fw-semibold mb-2 mt-3">Doctors:</div>
+    <div class="bot-quick-list">
+      <span>Dr. Jennifer Miller</span>
+      <span>Cardiology doctor</span>
+      <span>Available doctors</span>
+    </div>
+  </div>
+</div>"""
+
+
+def _process_message(msg):
+    """Main intent engine — returns (html_response, quick_replies)."""
+    m = msg.lower().strip()
+
+    # ── Help ────────────────────────────────────────────────────────────────
+    if any(w in m for w in ['help', 'kya kar', 'kya ho', 'guide', 'commands', 'what can']):
+        return HELP_MSG, ['Today stats', 'Hospital overview', 'Show all doctors']
+
+    # ── Today stats ─────────────────────────────────────────────────────────
+    if any(w in m for w in ['aaj', 'today', 'aaj ka', "today's stats", 'abhi', 'kitna chal']):
+        return _today_stats(), ['Hospital overview', 'Pending labs', 'Admitted patients']
+
+    # ── Hospital overview ───────────────────────────────────────────────────
+    if any(w in m for w in ['hospital', 'overview', 'total patients', 'kitne patients', 'stats', 'summary']):
+        return _hospital_stats(), ["Today's appointments", 'Show all doctors']
+
+    # ── Pending labs ────────────────────────────────────────────────────────
+    if any(w in m for w in ['pending lab', 'lab pending', 'pending test', 'test pending']):
+        tests = LabTest.query.filter_by(status='pending').order_by(LabTest.test_date.desc()).limit(10).all()
+        if not tests:
+            return "<p>✅ No pending lab tests!</p>", []
+        rows = ''.join(f"<tr><td>{t.medical_record.patient.full_name}</td><td>{t.test_name}</td><td>{t.test_date.strftime('%d %b') if t.test_date else '—'}</td></tr>" for t in tests)
+        return f"""<div class="bot-card"><div class="bot-card-header"><span>🧪</span><div><div class="fw-bold">Pending Lab Tests ({len(tests)})</div></div></div>
+<div class="bot-table-wrap"><table class="bot-table"><thead><tr><th>Patient</th><th>Test</th><th>Date</th></tr></thead><tbody>{rows}</tbody></table></div></div>""", []
+
+    # ── Admitted patients ───────────────────────────────────────────────────
+    if any(w in m for w in ['admitted', 'inpatient', 'ward me', 'bharte']):
+        adms = Admission.query.filter_by(status='admitted').order_by(Admission.admission_date.desc()).all()
+        if not adms:
+            return "<p>No patients currently admitted.</p>", []
+        rows = ''.join(f"<tr><td>{a.patient.full_name}</td><td>{a.bed.bed_number if a.bed else '—'}</td><td>{a.admitting_doctor.full_name if a.admitting_doctor else '—'}</td><td>{a.admission_date.strftime('%d %b')}</td></tr>" for a in adms)
+        return f"""<div class="bot-card"><div class="bot-card-header"><span>🛏️</span><div><div class="fw-bold">Currently Admitted ({len(adms)})</div></div></div>
+<div class="bot-table-wrap"><table class="bot-table"><thead><tr><th>Patient</th><th>Bed</th><th>Doctor</th><th>Admitted</th></tr></thead><tbody>{rows}</tbody></table></div></div>""", []
+
+    # ── Doctor queries ───────────────────────────────────────────────────────
+    if any(w in m for w in ['doctor', 'dr.', 'dr ', 'physician', 'specialist', 'cardio', 'ortho', 'gynec', 'neuro', 'pediatr', 'derma', 'surgeon']):
+        # Extract search term - remove intent words
+        search = m.replace('doctor', '').replace('dr.', '').replace('dr ', '').replace('show', '').replace('find', '').strip()
+        if not search:
+            search = msg  # use original if nothing left
+        return _doctor_info(search.strip()), ['Today stats', 'Hospital overview']
+
+    # ── Patient-specific queries ─────────────────────────────────────────────
+    # Determine intent (what do they want about the patient)
+    wants_appointments = any(w in m for w in ['appointment', 'schedule', 'booking', 'visit', 'appoint', 'milna'])
+    wants_bills = any(w in m for w in ['bill', 'billing', 'payment', 'invoice', 'outstanding', 'baaki', 'paisa', 'amount'])
+    wants_labs = any(w in m for w in ['lab', 'test', 'result', 'report', 'blood test', 'khaoon', 'nateeja'])
+    wants_records = any(w in m for w in ['record', 'history', 'diagnosis', 'treatment', 'medical', 'prescription', 'report', 'taareekh'])
+
+    # Strip intent keywords to get patient name/ID
+    strip_words = ['show', 'tell me about', 'batao', 'dikhao', 'patient', 'ka data', 'ki info',
+                   'appointment', 'bill', 'lab', 'medical record', 'history', 'result',
+                   'ka', 'ki', 'ke', 'ko', 'kya', 'hai', 'the', 'a', 'an', 'for', 'of', 'about']
+    search_term = m
+    for w in strip_words:
+        search_term = search_term.replace(w, ' ')
+    search_term = ' '.join(search_term.split()).strip()
+
+    # Try to find patients
+    patients_found = []
+    if search_term and len(search_term) >= 2:
+        patients_found = _find_patients(search_term)
+    if not patients_found and len(msg.strip()) >= 2:
+        # Try full original message
+        patients_found = _find_patients(msg.strip())
+
+    if patients_found:
+        if len(patients_found) > 1:
+            # Multiple matches — show list
+            options = ''.join(
+                f'<div class="bot-match-item" onclick="setMsg(\'{p.full_name}\')">'
+                f'<span class="avatar-init small">{p.full_name[0]}</span>'
+                f'<span><strong>{p.full_name}</strong> · {p.patient_id} · Age {p.age}</span></div>'
+                for p in patients_found[:6]
+            )
+            return f'<div class="fw-semibold mb-2">Found {len(patients_found)} matching patients — click to select:</div>{options}', []
+
+        p = patients_found[0]
+        # Single patient — respond based on intent
+        if wants_appointments:
+            return _patient_appointments(p), [f'{p.full_name} ka bill', f'{p.full_name} ki labs', f'{p.full_name} ka profile']
+        elif wants_bills:
+            return _patient_bills(p), [f'{p.full_name} ka appointment', f'{p.full_name} ki labs']
+        elif wants_labs:
+            return _patient_labs(p), [f'{p.full_name} ka appointment', f'{p.full_name} ka bill']
+        elif wants_records:
+            return _patient_records(p), [f'{p.full_name} ka appointment', f'{p.full_name} ka bill', f'{p.full_name} ki labs']
+        else:
+            # Default: full profile card
+            return _patient_card(p), [
+                f'{p.full_name} ka appointment',
+                f'{p.full_name} ka bill',
+                f'{p.full_name} ki labs',
+                f'{p.full_name} ki records',
+            ]
+
+    # ── Nothing matched ──────────────────────────────────────────────────────
+    return f"""<div class="bot-not-found">
+  <div>🤔</div>
+  <div>Mujhe samajh nahi aya: <strong>"{msg[:60]}"</strong></div>
+  <div class="small text-muted mt-1">Patient name/ID, ya "help" type karen</div>
+</div>""", ['help', 'Today stats', 'Hospital overview']
+
+
+@ai_bp.route('/chat', methods=['GET'])
+@login_required
+def chat():
+    # Pre-load recent patients for quick access
+    recent = Patient.query.order_by(Patient.created_at.desc()).limit(8).all()
+    return render_template('ai/chat.html', recent_patients=recent)
+
+
+@ai_bp.route('/chat/message', methods=['POST'])
+@login_required
+def chat_message():
+    data = request.get_json(force=True) or {}
+    msg = (data.get('message') or '').strip()
+    if not msg:
+        return jsonify({'html': '<p class="text-muted">Kuch type karen…</p>', 'quick': []})
+    html, quick = _process_message(msg)
+    return jsonify({'html': html, 'quick': quick})
