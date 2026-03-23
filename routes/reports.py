@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from models import db, Patient, Doctor, Appointment, Bill, Medicine, Admission, MedicalRecord
+from models import (db, Patient, Doctor, Appointment, Bill, Medicine, Admission,
+                    MedicalRecord, LabTest, Ward, Bed, BloodInventory, BloodRequest,
+                    Staff, Department, Prescription, OPDQueue)
 from datetime import datetime, date, timedelta
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, case
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
@@ -216,4 +218,220 @@ def revenue_report():
         avg_bill=avg_bill, collection_rate=collection_rate,
         status_stats=status_stats, daily_revenue=daily_revenue,
         recent_bills=recent_bills, top_patients=top_patients,
+    )
+
+
+# ─── DOCTOR PERFORMANCE REPORT ────────────────────────────────────────────────
+@reports_bp.route('/doctors')
+@login_required
+def doctor_report():
+    period = request.args.get('period', 'month')
+    start, today = get_date_range(period)
+
+    total_doctors = Doctor.query.count()
+    active_doctors = Doctor.query.filter_by(status='active').count()
+
+    # Per-doctor stats
+    doctor_stats = db.session.query(
+        Doctor,
+        func.count(Appointment.id).label('total_appts'),
+        func.sum(case((Appointment.status == 'completed', 1), else_=0)).label('completed'),
+        func.sum(case((Appointment.status == 'cancelled', 1), else_=0)).label('cancelled'),
+    ).outerjoin(Appointment, (Doctor.id == Appointment.doctor_id) & (Appointment.appointment_date >= start)
+    ).group_by(Doctor.id).order_by(func.count(Appointment.id).desc()).all()
+
+    # Revenue per doctor (via billing items is complex - approximate via appointments)
+    # Specialization breakdown
+    spec_stats = db.session.query(
+        Doctor.specialization, func.count(Doctor.id)
+    ).group_by(Doctor.specialization).order_by(func.count(Doctor.id).desc()).all()
+
+    # Department breakdown
+    dept_stats = db.session.query(
+        Department.name, func.count(Doctor.id)
+    ).outerjoin(Doctor, Doctor.department_id == Department.id
+    ).group_by(Department.id).order_by(func.count(Doctor.id).desc()).all()
+
+    return render_template('reports/doctors.html',
+        period=period, start=start, today=today,
+        total_doctors=total_doctors, active_doctors=active_doctors,
+        doctor_stats=doctor_stats, spec_stats=spec_stats, dept_stats=dept_stats,
+    )
+
+
+# ─── LAB REPORT ───────────────────────────────────────────────────────────────
+@reports_bp.route('/lab')
+@login_required
+def lab_report():
+    period = request.args.get('period', 'month')
+    start, today = get_date_range(period)
+
+    total = LabTest.query.filter(LabTest.test_date >= start).count()
+    pending = LabTest.query.filter(LabTest.test_date >= start, LabTest.status == 'pending').count()
+    completed = LabTest.query.filter(LabTest.test_date >= start, LabTest.status == 'completed').count()
+    cancelled = LabTest.query.filter(LabTest.test_date >= start, LabTest.status == 'cancelled').count()
+    completion_rate = round(completed / total * 100, 1) if total > 0 else 0
+
+    # Top tests
+    top_tests = db.session.query(
+        LabTest.test_name, func.count(LabTest.id).label('cnt')
+    ).filter(LabTest.test_date >= start
+    ).group_by(LabTest.test_name).order_by(func.count(LabTest.id).desc()).limit(10).all()
+
+    # Daily trend
+    daily = []
+    for i in range(13, -1, -1):
+        day = today - timedelta(days=i)
+        cnt = LabTest.query.filter(func.date(LabTest.test_date) == day).count()
+        daily.append({'date': day.strftime('%d %b'), 'count': cnt})
+
+    # Recent tests with patient info
+    recent = db.session.query(LabTest, Patient).join(
+        MedicalRecord, LabTest.medical_record_id == MedicalRecord.id
+    ).join(Patient, MedicalRecord.patient_id == Patient.id
+    ).filter(LabTest.test_date >= start
+    ).order_by(LabTest.test_date.desc()).limit(20).all()
+
+    return render_template('reports/lab.html',
+        period=period, start=start, today=today,
+        total=total, pending=pending, completed=completed,
+        cancelled=cancelled, completion_rate=completion_rate,
+        top_tests=top_tests, daily=daily, recent=recent,
+    )
+
+
+# ─── PHARMACY / STOCK REPORT ──────────────────────────────────────────────────
+@reports_bp.route('/pharmacy')
+@login_required
+def pharmacy_report():
+    all_medicines = Medicine.query.all()
+    total = len(all_medicines)
+    low_stock = [m for m in all_medicines if m.is_low_stock]
+    out_of_stock = [m for m in all_medicines if m.stock_quantity == 0]
+
+    today_d = date.today()
+    expiring_soon = [m for m in all_medicines
+                     if m.expiry_date and (m.expiry_date - today_d).days <= 90 and m.expiry_date >= today_d]
+    expired = [m for m in all_medicines
+               if m.expiry_date and m.expiry_date < today_d]
+
+    # Category breakdown
+    cat_stats = db.session.query(
+        Medicine.category, func.count(Medicine.id), func.sum(Medicine.stock_quantity)
+    ).group_by(Medicine.category).order_by(func.count(Medicine.id).desc()).all()
+
+    # Total inventory value
+    total_value = sum((m.stock_quantity * m.unit_price) for m in all_medicines)
+
+    # Top medicines by stock value
+    top_by_value = sorted(all_medicines, key=lambda m: m.stock_quantity * m.unit_price, reverse=True)[:10]
+
+    return render_template('reports/pharmacy.html',
+        total=total, low_stock=low_stock, out_of_stock=out_of_stock,
+        expiring_soon=expiring_soon, expired=expired,
+        cat_stats=cat_stats, total_value=total_value,
+        top_by_value=top_by_value, all_medicines=all_medicines,
+    )
+
+
+# ─── WARD & ADMISSIONS REPORT ─────────────────────────────────────────────────
+@reports_bp.route('/wards')
+@login_required
+def ward_report():
+    period = request.args.get('period', 'month')
+    start, today = get_date_range(period)
+
+    wards = Ward.query.all()
+    all_beds = Bed.query.all()
+    total_beds = len(all_beds)
+    occupied_beds = sum(1 for b in all_beds if b.status == 'occupied')
+    available_beds = sum(1 for b in all_beds if b.status == 'available')
+    maintenance_beds = sum(1 for b in all_beds if b.status == 'maintenance')
+    occupancy_rate = round(occupied_beds / total_beds * 100, 1) if total_beds else 0
+
+    total_admissions = Admission.query.filter(Admission.admission_date >= start).count()
+    current_admissions = Admission.query.filter_by(status='admitted').count()
+    discharged = Admission.query.filter(
+        Admission.admission_date >= start, Admission.status == 'discharged'
+    ).count()
+
+    # Avg length of stay
+    discharged_list = Admission.query.filter(
+        Admission.admission_date >= start,
+        Admission.status == 'discharged',
+        Admission.discharge_date.isnot(None)
+    ).all()
+    avg_los = 0
+    if discharged_list:
+        total_days = sum((a.discharge_date - a.admission_date).days for a in discharged_list)
+        avg_los = round(total_days / len(discharged_list), 1)
+
+    # Ward-wise stats
+    ward_stats = []
+    for w in wards:
+        beds = w.beds
+        occ = sum(1 for b in beds if b.status == 'occupied')
+        total_w = len(beds)
+        ward_stats.append({
+            'ward': w,
+            'total': total_w,
+            'occupied': occ,
+            'available': sum(1 for b in beds if b.status == 'available'),
+            'rate': round(occ / total_w * 100, 1) if total_w else 0,
+        })
+
+    # Recent admissions
+    recent_admissions = Admission.query.filter(
+        Admission.admission_date >= start
+    ).order_by(Admission.admission_date.desc()).limit(20).all()
+
+    return render_template('reports/wards.html',
+        period=period, start=start, today=today,
+        total_beds=total_beds, occupied_beds=occupied_beds,
+        available_beds=available_beds, maintenance_beds=maintenance_beds,
+        occupancy_rate=occupancy_rate,
+        total_admissions=total_admissions, current_admissions=current_admissions,
+        discharged=discharged, avg_los=avg_los,
+        ward_stats=ward_stats, recent_admissions=recent_admissions,
+    )
+
+
+# ─── BLOOD BANK REPORT ────────────────────────────────────────────────────────
+@reports_bp.route('/blood-bank')
+@login_required
+def blood_bank_report():
+    period = request.args.get('period', 'month')
+    start, today = get_date_range(period)
+
+    inventory = BloodInventory.query.order_by(BloodInventory.blood_group).all()
+    total_units = sum(i.units_available for i in inventory)
+    critical = [i for i in inventory if i.units_available < 5]
+
+    total_requests = BloodRequest.query.filter(BloodRequest.request_date >= start).count()
+    approved = BloodRequest.query.filter(BloodRequest.request_date >= start, BloodRequest.status == 'approved').count()
+    pending = BloodRequest.query.filter(BloodRequest.request_date >= start, BloodRequest.status == 'pending').count()
+    issued = BloodRequest.query.filter(BloodRequest.request_date >= start, BloodRequest.status == 'issued').count()
+    cancelled_req = BloodRequest.query.filter(BloodRequest.request_date >= start, BloodRequest.status == 'cancelled').count()
+    fulfillment_rate = round(issued / total_requests * 100, 1) if total_requests > 0 else 0
+
+    # By blood group demand
+    demand_stats = db.session.query(
+        BloodRequest.blood_group,
+        func.count(BloodRequest.id).label('requests'),
+        func.sum(BloodRequest.units_required).label('units_req'),
+        func.sum(BloodRequest.units_issued).label('units_issued'),
+    ).filter(BloodRequest.request_date >= start
+    ).group_by(BloodRequest.blood_group).order_by(func.count(BloodRequest.id).desc()).all()
+
+    recent_requests = BloodRequest.query.filter(
+        BloodRequest.request_date >= start
+    ).order_by(BloodRequest.request_date.desc()).limit(20).all()
+
+    return render_template('reports/blood_bank.html',
+        period=period, start=start, today=today,
+        inventory=inventory, total_units=total_units, critical=critical,
+        total_requests=total_requests, approved=approved, pending=pending,
+        issued=issued, cancelled_req=cancelled_req,
+        fulfillment_rate=fulfillment_rate,
+        demand_stats=demand_stats, recent_requests=recent_requests,
     )

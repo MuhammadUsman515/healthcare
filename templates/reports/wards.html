@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Ward & Admissions Report – {{ hospital_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-bed me-2 text-info"></i>Ward & Admissions Report</h4>
+    <small class="text-muted">Period: {{ start.strftime('%d %b %Y') }} → {{ today.strftime('%d %b %Y') }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group">
+      <a href="?period=week" class="btn btn-outline-info btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+      <a href="?period=month" class="btn btn-outline-info btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+      <a href="?period=year" class="btn btn-outline-info btn-sm {% if period=='year' %}active{% endif %}">Year</a>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+  </div>
+</div>
+
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div><h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+    <div class="text-muted small">Ward & Admissions Report · {{ start.strftime('%d %b %Y') }} – {{ today.strftime('%d %b %Y') }}</div></div>
+    <div class="text-muted small">Printed: {{ today.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  {% for label, val, sub, color in [
+    ('Total Beds', total_beds, 'in facility', '#2563eb'),
+    ('Occupied', occupied_beds, str(occupancy_rate)+'% occupancy', '#ef4444'),
+    ('Available', available_beds, 'beds free', '#16a34a'),
+    ('Admissions (Period)', total_admissions, str(discharged)+' discharged', '#f59e0b'),
+    ('Currently Admitted', current_admissions, 'inpatients', '#7c3aed'),
+    ('Avg Stay', avg_los, 'days', '#06b6d4'),
+  ] %}
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">{{ label }}</div>
+      <div class="fw-bold fs-4" style="color:{{ color }}">{{ val }}</div>
+      <div class="small text-muted">{{ sub }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Occupancy Rate -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0">Overall Bed Occupancy</h6>
+      <span class="fw-bold fs-5 {% if occupancy_rate>=90 %}text-danger{% elif occupancy_rate>=70 %}text-warning{% else %}text-success{% endif %}">
+        {{ occupancy_rate }}%
+      </span>
+    </div>
+    <div class="progress" style="height:16px;border-radius:8px">
+      <div class="progress-bar {% if occupancy_rate>=90 %}bg-danger{% elif occupancy_rate>=70 %}bg-warning{% else %}bg-success{% endif %}"
+           style="width:{{ occupancy_rate }}%">{{ occupancy_rate }}%</div>
+    </div>
+    <div class="d-flex justify-content-between small text-muted mt-2">
+      <span>0% (Empty)</span>
+      <span class="text-danger">100% (Full)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Ward-wise Breakdown -->
+{% if ward_stats %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom"><h6 class="fw-bold mb-0"><i class="fas fa-hospital me-2 text-info"></i>Ward-wise Breakdown</h6></div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Ward Name</th>
+            <th>Type</th>
+            <th class="text-center">Total Beds</th>
+            <th class="text-center">Occupied</th>
+            <th class="text-center">Available</th>
+            <th class="pe-4">Occupancy Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ws in ward_stats %}
+          <tr>
+            <td class="ps-4 fw-semibold">{{ ws.ward.name }}</td>
+            <td><span class="badge bg-light text-dark">{{ ws.ward.ward_type or 'General' }}</span></td>
+            <td class="text-center">{{ ws.total }}</td>
+            <td class="text-center fw-bold text-danger">{{ ws.occupied }}</td>
+            <td class="text-center text-success">{{ ws.available }}</td>
+            <td class="pe-4" style="min-width:180px">
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:8px">
+                  <div class="progress-bar {% if ws.rate>=90 %}bg-danger{% elif ws.rate>=70 %}bg-warning{% else %}bg-success{% endif %}"
+                       style="width:{{ ws.rate }}%"></div>
+                </div>
+                <span class="small fw-semibold">{{ ws.rate }}%</span>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">No wards configured</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Admissions -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-list me-2 text-primary"></i>Recent Admissions</h6>
+      <span class="badge bg-primary">{{ recent_admissions|length }} records</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Admission ID</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Diagnosis</th>
+            <th>Admitted</th>
+            <th>Discharged</th>
+            <th class="text-center">Stay (Days)</th>
+            <th class="text-center pe-4">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for adm in recent_admissions %}
+          {% set stay = ((adm.discharge_date - adm.admission_date).days) if adm.discharge_date else '—' %}
+          <tr>
+            <td class="ps-4 font-monospace">{{ adm.admission_id }}</td>
+            <td class="fw-medium">{{ adm.patient.full_name }}</td>
+            <td class="text-muted">{{ adm.admitting_doctor.full_name if adm.admitting_doctor else '—' }}</td>
+            <td class="text-muted">{{ (adm.diagnosis or '—')[:30] }}</td>
+            <td>{{ adm.admission_date.strftime('%d %b %Y') }}</td>
+            <td class="text-muted">{{ adm.discharge_date.strftime('%d %b %Y') if adm.discharge_date else '—' }}</td>
+            <td class="text-center">{{ stay }}</td>
+            <td class="text-center pe-4">
+              <span class="badge {% if adm.status=='admitted' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ adm.status|title }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center py-4 text-muted">No admissions in this period</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

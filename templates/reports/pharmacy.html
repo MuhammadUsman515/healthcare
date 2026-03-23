@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}Pharmacy & Stock Report – {{ hospital_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-pills me-2" style="color:#16a34a"></i>Pharmacy & Stock Report</h4>
+    <small class="text-muted">Current inventory snapshot — {{ today.strftime('%d %b %Y') if today is defined else '' }}</small>
+  </div>
+  <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+</div>
+
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div><h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+    <div class="text-muted small">Pharmacy & Stock Report · {{ now().strftime('%d %b %Y') if now is defined else '' }}</div></div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Total Medicines</div>
+      <div class="fw-bold fs-3 text-primary">{{ total }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Low Stock</div>
+      <div class="fw-bold fs-3 text-warning">{{ low_stock|length }}</div>
+      <div class="small text-warning">Need restock</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Out of Stock</div>
+      <div class="fw-bold fs-3 text-danger">{{ out_of_stock|length }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Inventory Value</div>
+      <div class="fw-bold fs-3" style="color:#34694f">{{ currency }}{{ "{:,.0f}".format(total_value) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Alerts Row -->
+{% if out_of_stock or expiring_soon or expired %}
+<div class="row g-3 mb-4">
+  {% if out_of_stock %}
+  <div class="col-md-4">
+    <div class="card border-danger border-2 shadow-sm">
+      <div class="card-header bg-danger text-white fw-semibold py-2">
+        <i class="fas fa-times-circle me-2"></i>Out of Stock ({{ out_of_stock|length }})
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for m in out_of_stock %}
+              <tr><td class="ps-3 small fw-medium">{{ m.name }}</td><td class="pe-3 text-end"><span class="badge bg-danger">0</span></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if expiring_soon %}
+  <div class="col-md-4">
+    <div class="card border-warning border-2 shadow-sm">
+      <div class="card-header bg-warning text-dark fw-semibold py-2">
+        <i class="fas fa-exclamation-triangle me-2"></i>Expiring ≤90 Days ({{ expiring_soon|length }})
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for m in expiring_soon | sort(attribute='expiry_date') %}
+              <tr>
+                <td class="ps-3 small fw-medium">{{ m.name }}</td>
+                <td class="pe-3 text-end small text-danger">{{ m.expiry_date.strftime('%d %b %Y') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if expired %}
+  <div class="col-md-4">
+    <div class="card border-secondary border-2 shadow-sm">
+      <div class="card-header bg-secondary text-white fw-semibold py-2">
+        <i class="fas fa-ban me-2"></i>Expired ({{ expired|length }})
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for m in expired %}
+              <tr>
+                <td class="ps-3 small fw-medium">{{ m.name }}</td>
+                <td class="pe-3 text-end small text-muted">{{ m.expiry_date.strftime('%d %b %Y') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <!-- Category Breakdown -->
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="fas fa-tags me-2 text-primary"></i>Category Breakdown</h6>
+        {% if cat_stats %}
+        {% set max_c = cat_stats[0][2] or 1 %}
+        {% for cat, cnt, qty in cat_stats %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-medium">{{ cat or 'Uncategorized' }}</span>
+            <span class="text-muted">{{ cnt }} items · {{ qty or 0 }} units</span>
+          </div>
+          <div class="progress" style="height:7px">
+            <div class="progress-bar bg-success" style="width:{{ ((qty or 0)/(max_c if max_c > 0 else 1)*100)|int }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4">No category data</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Top by Value -->
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-0">
+        <div class="px-4 py-3 border-bottom"><h6 class="fw-bold mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Top Medicines by Inventory Value</h6></div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small align-middle">
+            <thead class="table-light">
+              <tr><th class="ps-4">#</th><th>Medicine</th><th class="text-center">Stock</th><th class="text-end">Unit Price</th><th class="text-end pe-4">Value</th></tr>
+            </thead>
+            <tbody>
+              {% for m in top_by_value %}
+              <tr>
+                <td class="ps-4 text-muted">{{ loop.index }}</td>
+                <td>
+                  <div class="fw-medium">{{ m.name }}</div>
+                  <div class="small text-muted">{{ m.category or '' }}</div>
+                </td>
+                <td class="text-center {% if m.is_low_stock %}text-danger fw-bold{% endif %}">{{ m.stock_quantity }} {{ m.unit or '' }}</td>
+                <td class="text-end">{{ currency }}{{ "{:,.2f}".format(m.unit_price) }}</td>
+                <td class="text-end pe-4 fw-semibold">{{ currency }}{{ "{:,.2f}".format(m.stock_quantity * m.unit_price) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Full Inventory -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-boxes me-2"></i>Complete Inventory</h6>
+      <span class="badge bg-primary">{{ total }} medicines</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Medicine</th>
+            <th>Generic Name</th>
+            <th>Category</th>
+            <th>Manufacturer</th>
+            <th class="text-center">Stock</th>
+            <th class="text-center">Reorder</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-center pe-4">Expiry</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in all_medicines | sort(attribute='name') %}
+          <tr class="{% if m.stock_quantity == 0 %}table-danger{% elif m.is_low_stock %}table-warning{% endif %}">
+            <td class="ps-4 fw-medium">{{ m.name }}</td>
+            <td class="text-muted">{{ m.generic_name or '—' }}</td>
+            <td>{{ m.category or '—' }}</td>
+            <td class="text-muted">{{ m.manufacturer or '—' }}</td>
+            <td class="text-center fw-bold {% if m.stock_quantity==0 %}text-danger{% elif m.is_low_stock %}text-warning{% else %}text-success{% endif %}">
+              {{ m.stock_quantity }} {{ m.unit or '' }}
+            </td>
+            <td class="text-center text-muted">{{ m.reorder_level }}</td>
+            <td class="text-end">{{ currency }}{{ "{:,.2f}".format(m.unit_price) }}</td>
+            <td class="text-center pe-4 {% if m.expiry_date and m.expiry_date < today %}text-danger{% endif %}">
+              {{ m.expiry_date.strftime('%d %b %Y') if m.expiry_date else '—' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center py-4 text-muted">No medicines in inventory</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

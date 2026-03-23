@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Doctor Performance Report – {{ hospital_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-user-md me-2 text-primary"></i>Doctor Performance Report</h4>
+    <small class="text-muted">Period: {{ start.strftime('%d %b %Y') }} → {{ today.strftime('%d %b %Y') }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group">
+      <a href="?period=week" class="btn btn-outline-primary btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+      <a href="?period=month" class="btn btn-outline-primary btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+      <a href="?period=year" class="btn btn-outline-primary btn-sm {% if period=='year' %}active{% endif %}">Year</a>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+  </div>
+</div>
+
+<!-- Print Header -->
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div><h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+    <div class="text-muted small">Doctor Performance Report · {{ start.strftime('%d %b %Y') }} – {{ today.strftime('%d %b %Y') }}</div></div>
+    <div class="text-muted small">Printed: {{ today.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Total Doctors</div>
+      <div class="fw-bold fs-3 text-primary">{{ total_doctors }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Active</div>
+      <div class="fw-bold fs-3 text-success">{{ active_doctors }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Specializations</div>
+      <div class="fw-bold fs-3 text-info">{{ spec_stats|length }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Total Appts (Period)</div>
+      <div class="fw-bold fs-3" style="color:#f59e0b">{{ doctor_stats | sum(attribute=1) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Specialization Breakdown -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="fas fa-stethoscope me-2 text-primary"></i>Specialization Breakdown</h6>
+        {% if spec_stats %}
+        {% set max_s = spec_stats[0][1] %}
+        {% for spec, cnt in spec_stats %}
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-medium">{{ spec or 'General' }}</span>
+            <span class="text-muted">{{ cnt }} doctor{% if cnt != 1 %}s{% endif %}</span>
+          </div>
+          <div class="progress" style="height:7px">
+            <div class="progress-bar bg-primary" style="width:{{ (cnt/max_s*100)|int }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4">No data</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Department Breakdown -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="fas fa-hospital me-2 text-success"></i>Department Breakdown</h6>
+        {% if dept_stats %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Department</th><th class="text-center">Doctors</th></tr></thead>
+            <tbody>
+              {% for dept, cnt in dept_stats %}
+              <tr>
+                <td>{{ dept or 'Unassigned' }}</td>
+                <td class="text-center fw-semibold">{{ cnt }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">No department data</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Doctor Performance Table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-table me-2 text-primary"></i>Doctor-wise Performance</h6>
+      <span class="badge bg-primary">{{ doctor_stats|length }} doctors</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">#</th>
+            <th>Doctor</th>
+            <th>Specialization</th>
+            <th>Department</th>
+            <th class="text-center">Total Appts</th>
+            <th class="text-center">Completed</th>
+            <th class="text-center">Cancelled</th>
+            <th class="text-center pe-4">Completion Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc, total_a, comp, canc in doctor_stats %}
+          {% set rate = ((comp or 0) / total_a * 100)|round(1) if total_a > 0 else 0 %}
+          <tr>
+            <td class="ps-4 text-muted">{{ loop.index }}</td>
+            <td>
+              <div class="fw-semibold">{{ doc.full_name }}</div>
+              <div class="small text-muted">{{ doc.employee_id or '' }}</div>
+            </td>
+            <td class="text-muted small">{{ doc.specialization or '—' }}</td>
+            <td class="text-muted small">{{ doc.department.name if doc.department else '—' }}</td>
+            <td class="text-center fw-bold">{{ total_a or 0 }}</td>
+            <td class="text-center text-success fw-semibold">{{ comp or 0 }}</td>
+            <td class="text-center text-danger">{{ canc or 0 }}</td>
+            <td class="text-center pe-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:6px">
+                  <div class="progress-bar {% if rate>=80 %}bg-success{% elif rate>=50 %}bg-warning{% else %}bg-danger{% endif %}"
+                       style="width:{{ rate }}%"></div>
+                </div>
+                <span class="small fw-semibold {% if rate>=80 %}text-success{% elif rate>=50 %}text-warning{% else %}text-danger{% endif %}">
+                  {{ rate }}%
+                </span>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center py-4 text-muted">No doctor data found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

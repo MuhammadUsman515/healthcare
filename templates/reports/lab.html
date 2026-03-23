@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Lab Report – {{ hospital_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-flask me-2" style="color:#7c3aed"></i>Lab Report</h4>
+    <small class="text-muted">Period: {{ start.strftime('%d %b %Y') }} → {{ today.strftime('%d %b %Y') }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group">
+      <a href="?period=week" class="btn btn-outline-secondary btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+      <a href="?period=month" class="btn btn-outline-secondary btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+      <a href="?period=year" class="btn btn-outline-secondary btn-sm {% if period=='year' %}active{% endif %}">Year</a>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+  </div>
+</div>
+
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div><h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+    <div class="text-muted small">Lab Report · {{ start.strftime('%d %b %Y') }} – {{ today.strftime('%d %b %Y') }}</div></div>
+    <div class="text-muted small">Printed: {{ today.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  {% for label, val, color in [('Total Tests', total, '#7c3aed'), ('Completed', completed, '#16a34a'), ('Pending', pending, '#f59e0b'), ('Cancelled', cancelled, '#dc2626')] %}
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">{{ label }}</div>
+      <div class="fw-bold fs-3" style="color:{{ color }}">{{ val }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Daily Trend -->
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Daily Test Orders (Last 14 Days)</h6>
+        {% set max_d = daily | map(attribute='count') | max if daily else 1 %}
+        <div class="d-flex align-items-end gap-1" style="height:110px">
+          {% for d in daily %}
+          {% set h = (d.count / (max_d if max_d > 0 else 1) * 95)|int %}
+          <div class="flex-fill d-flex flex-column align-items-center" title="{{ d.date }}: {{ d.count }}">
+            <div class="small" style="font-size:.6rem;color:#6b7280">{{ d.count if d.count > 0 else '' }}</div>
+            <div class="rounded-top w-100" style="height:{{ [h,2]|max }}px;background:#7c3aed;opacity:.75"></div>
+            <div class="text-muted mt-1 text-center" style="font-size:.55rem;line-height:1.1">{{ d.date.split()[0] }}<br>{{ d.date.split()[1] }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Completion Rate + Status -->
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Completion Summary</h6>
+        <div class="text-center mb-3">
+          <div class="fw-bold" style="font-size:2.5rem;color:{% if completion_rate>=80 %}#16a34a{% elif completion_rate>=50 %}#f59e0b{% else %}#dc2626{% endif %}">
+            {{ completion_rate }}%
+          </div>
+          <div class="text-muted small">Completion Rate</div>
+        </div>
+        <div class="progress mb-3" style="height:12px;border-radius:6px">
+          <div class="progress-bar {% if completion_rate>=80 %}bg-success{% elif completion_rate>=50 %}bg-warning{% else %}bg-danger{% endif %}"
+               style="width:{{ completion_rate }}%"></div>
+        </div>
+        <div class="row g-2 text-center">
+          {% for label, val, color in [('Completed', completed, '#16a34a'), ('Pending', pending, '#f59e0b'), ('Cancelled', cancelled, '#dc2626')] %}
+          <div class="col-4">
+            <div class="p-2 rounded" style="background:{{ color }}15">
+              <div class="fw-bold" style="color:{{ color }}">{{ val }}</div>
+              <div class="small text-muted">{{ label }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Tests + Recent -->
+<div class="row g-4 mb-4">
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="fas fa-trophy me-2 text-warning"></i>Top Ordered Tests</h6>
+        {% if top_tests %}
+        {% set max_t = top_tests[0][1] %}
+        {% for name, cnt in top_tests %}
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>{{ name[:35] }}{% if name|length > 35 %}…{% endif %}</span>
+            <span class="fw-semibold">{{ cnt }}</span>
+          </div>
+          <div class="progress" style="height:5px">
+            <div class="progress-bar" style="width:{{ (cnt/max_t*100)|int }}%;background:#7c3aed"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4 small">No test data for this period</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-0">
+        <div class="px-4 py-3 border-bottom"><h6 class="fw-bold mb-0">Recent Lab Tests</h6></div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Test Name</th>
+                <th>Patient</th>
+                <th>Date</th>
+                <th class="text-center pe-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for test, patient in recent %}
+              <tr>
+                <td class="ps-3 fw-medium">{{ test.test_name[:30] }}</td>
+                <td class="text-muted">{{ patient.full_name }}</td>
+                <td class="text-muted">{{ test.test_date.strftime('%d %b %Y') }}</td>
+                <td class="text-center pe-3">
+                  <span class="badge {% if test.status=='completed' %}bg-success{% elif test.status=='pending' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                    {{ test.status|title }}
+                  </span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center py-4 text-muted">No tests in this period</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

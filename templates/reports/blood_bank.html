@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}Blood Bank Report – {{ hospital_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-tint me-2 text-danger"></i>Blood Bank Report</h4>
+    <small class="text-muted">Period: {{ start.strftime('%d %b %Y') }} → {{ today.strftime('%d %b %Y') }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group">
+      <a href="?period=week" class="btn btn-outline-danger btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+      <a href="?period=month" class="btn btn-outline-danger btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+      <a href="?period=year" class="btn btn-outline-danger btn-sm {% if period=='year' %}active{% endif %}">Year</a>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+  </div>
+</div>
+
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div><h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+    <div class="text-muted small">Blood Bank Report · {{ start.strftime('%d %b %Y') }} – {{ today.strftime('%d %b %Y') }}</div></div>
+    <div class="text-muted small">Printed: {{ today.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  {% for label, val, color, sub in [
+    ('Total Units', total_units, '#dc2626', 'in stock'),
+    ('Total Requests', total_requests, '#2563eb', 'this period'),
+    ('Issued', issued, '#16a34a', 'fulfilled'),
+    ('Pending', pending, '#f59e0b', 'awaiting'),
+    ('Fulfillment Rate', fulfillment_rate|string + '%', '#7c3aed', 'of requests'),
+    ('Critical Groups', critical|length, '#dc2626', 'below 5 units'),
+  ] %}
+  <div class="col-6 col-xl-2">
+    <div class="card border-0 shadow-sm p-3 text-center {% if label=='Critical Groups' and critical|length > 0 %}border-danger border-2{% endif %}">
+      <div class="small text-muted mb-1">{{ label }}</div>
+      <div class="fw-bold fs-4" style="color:{{ color }}">{{ val }}</div>
+      <div class="small text-muted">{{ sub }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Critical Alert -->
+{% if critical %}
+<div class="alert alert-danger d-flex align-items-center gap-3 mb-4">
+  <i class="fas fa-exclamation-circle fa-2x"></i>
+  <div>
+    <strong>Critical Blood Shortage!</strong>
+    {% for c in critical %}
+    <span class="badge bg-danger ms-1">{{ c.blood_group }}: {{ c.units_available }} units</span>
+    {% endfor %}
+    — Immediate restocking required.
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <!-- Blood Inventory -->
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="fas fa-tint me-2 text-danger"></i>Current Blood Inventory</h6>
+        {% if inventory %}
+        {% set max_inv = inventory | map(attribute='units_available') | max if inventory else 1 %}
+        {% for inv in inventory %}
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="fw-bold text-danger" style="width:36px;font-size:1rem">{{ inv.blood_group }}</div>
+          <div class="flex-fill">
+            <div class="progress" style="height:18px;border-radius:9px">
+              <div class="progress-bar {% if inv.units_available < 5 %}bg-danger{% elif inv.units_available < 15 %}bg-warning{% else %}bg-success{% endif %}"
+                   style="width:{{ (inv.units_available / (max_inv if max_inv > 0 else 1) * 100)|int }}%;min-width:20px">
+                <span class="px-2 small fw-bold">{{ inv.units_available }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="small text-muted" style="width:50px">units</div>
+        </div>
+        {% endfor %}
+        <hr>
+        <div class="text-center">
+          <span class="fw-bold text-danger fs-5">{{ total_units }}</span>
+          <span class="text-muted small"> total units in stock</span>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">No inventory data</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Demand by Blood Group + Fulfillment -->
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-0">
+        <div class="px-4 py-3 border-bottom"><h6 class="fw-bold mb-0">Demand by Blood Group</h6></div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Blood Group</th>
+                <th class="text-center">Requests</th>
+                <th class="text-center">Units Req.</th>
+                <th class="text-center">Units Issued</th>
+                <th class="text-center pe-4">Fulfillment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for bg, reqs, units_req, units_iss in demand_stats %}
+              {% set fill = ((units_iss or 0) / (units_req or 1) * 100)|round(1) %}
+              <tr>
+                <td class="ps-4"><span class="badge bg-danger px-2">{{ bg }}</span></td>
+                <td class="text-center fw-bold">{{ reqs }}</td>
+                <td class="text-center">{{ units_req or 0 }}</td>
+                <td class="text-center text-success fw-semibold">{{ units_iss or 0 }}</td>
+                <td class="text-center pe-4">
+                  <span class="badge {% if fill>=80 %}bg-success{% elif fill>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                    {{ fill }}%
+                  </span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center py-4 text-muted">No requests in this period</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="p-3 border-top">
+          <div class="row g-2 text-center">
+            {% for label, val, color in [('Approved', approved, 'success'), ('Pending', pending, 'warning'), ('Issued', issued, 'primary'), ('Cancelled', cancelled_req, 'secondary')] %}
+            <div class="col-3">
+              <div class="p-2 rounded bg-{{ color }} bg-opacity-10">
+                <div class="fw-bold text-{{ color }}">{{ val }}</div>
+                <div class="small text-muted">{{ label }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Requests -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-list me-2 text-danger"></i>Recent Blood Requests</h6>
+      <span class="badge bg-danger">{{ recent_requests|length }} records</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Request #</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th class="text-center">Blood Group</th>
+            <th class="text-center">Req. Units</th>
+            <th class="text-center">Issued</th>
+            <th>Purpose</th>
+            <th class="text-center">Urgency</th>
+            <th class="text-center pe-4">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in recent_requests %}
+          <tr>
+            <td class="ps-4 font-monospace">{{ req.request_number }}</td>
+            <td class="fw-medium">{{ req.patient.full_name }}</td>
+            <td class="text-muted">{{ req.doctor.full_name if req.doctor else '—' }}</td>
+            <td class="text-center"><span class="badge bg-danger">{{ req.blood_group }}</span></td>
+            <td class="text-center">{{ req.units_required }}</td>
+            <td class="text-center text-success fw-semibold">{{ req.units_issued }}</td>
+            <td class="text-muted">{{ (req.purpose or '—')[:25] }}</td>
+            <td class="text-center">
+              <span class="badge {% if req.urgency=='emergency' %}bg-danger{% elif req.urgency=='urgent' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                {{ req.urgency|title }}
+              </span>
+            </td>
+            <td class="text-center pe-4">
+              <span class="badge {% if req.status=='issued' %}bg-success{% elif req.status=='approved' %}bg-primary{% elif req.status=='pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                {{ req.status|title }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" class="text-center py-4 text-muted">No blood requests in this period</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
