@@ -20,6 +20,7 @@ from routes.referrals import referrals_bp
 from routes.lab import lab_bp
 from routes.purchase_orders import po_bp
 from routes.audit import audit_bp
+from routes.settings import settings_bp
 
 
 def create_app():
@@ -37,6 +38,23 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    # Context processor: injects clinic_mode + hospital_name into every template
+    @app.context_processor
+    def inject_settings():
+        from models import SystemSetting
+        try:
+            mode = SystemSetting.query.filter_by(key='clinic_mode').first()
+            clinic_mode = (mode.value == '1') if mode else False
+            name_row = SystemSetting.query.filter_by(key='hospital_name').first()
+            hospital_name = name_row.value if name_row else 'MediCare'
+            currency_row = SystemSetting.query.filter_by(key='currency').first()
+            currency = currency_row.value if currency_row else 'PKR'
+        except Exception:
+            clinic_mode = False
+            hospital_name = 'MediCare'
+            currency = 'PKR'
+        return dict(clinic_mode=clinic_mode, hospital_name=hospital_name, currency=currency)
 
     # Core modules
     app.register_blueprint(auth_bp)
@@ -59,6 +77,7 @@ def create_app():
     app.register_blueprint(lab_bp)
     app.register_blueprint(po_bp)
     app.register_blueprint(audit_bp)
+    app.register_blueprint(settings_bp)
 
     return app
 
