@@ -1,73 +1,242 @@
 {% extends 'base.html' %}
-{% block title %}Appointment Report - MediCare HMS{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
-<li class="breadcrumb-item active">Appointment Report</li>
-{% endblock %}
+{% block title %}Appointment Report – {{ hospital_name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0"><i class="fas fa-calendar-check me-2 text-primary"></i>Appointment Report</h4>
-    <div class="d-flex gap-2 align-items-center">
-        <div class="btn-group no-print">
-            <a href="?period=week" class="btn btn-outline-primary btn-sm {% if period == 'week' %}active{% endif %}">Week</a>
-            <a href="?period=month" class="btn btn-outline-primary btn-sm {% if period == 'month' %}active{% endif %}">Month</a>
-            <a href="?period=year" class="btn btn-outline-primary btn-sm {% if period == 'year' %}active{% endif %}">Year</a>
-        </div>
-        <button onclick="window.print()" class="btn btn-outline-dark btn-sm no-print"><i class="fas fa-print me-1"></i>Print</button>
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-calendar-check me-2" style="color:#34694f"></i>Appointment Report</h4>
+    <small class="text-muted">Period: {{ start.strftime('%d %b %Y') }} → {{ today.strftime('%d %b %Y') }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group">
+      <a href="?period=week" class="btn btn-outline-success btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+      <a href="?period=month" class="btn btn-outline-success btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+      <a href="?period=year" class="btn btn-outline-success btn-sm {% if period=='year' %}active{% endif %}">Year</a>
     </div>
+    <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+  </div>
 </div>
 
+<!-- Print Header -->
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div><h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+    <div class="text-muted small">Appointment Report · {{ start.strftime('%d %b %Y') }} – {{ today.strftime('%d %b %Y') }}</div></div>
+    <div class="text-muted small">Printed: {{ today.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+
+<!-- KPI Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-primary">{{ total }}</div><small class="text-muted">Total</small></div></div></div>
-    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-success">{{ completed }}</div><small class="text-muted">Completed</small></div></div></div>
-    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-warning">{{ scheduled }}</div><small class="text-muted">Scheduled</small></div></div></div>
-    <div class="col-md-3"><div class="card shadow-sm stat-card"><div class="card-body text-center"><div class="h4 fw-bold text-danger">{{ cancelled }}</div><small class="text-muted">Cancelled</small></div></div></div>
+  <div class="col-6 col-xl">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Total</div>
+      <div class="fw-bold fs-3 text-primary">{{ total }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Completed</div>
+      <div class="fw-bold fs-3 text-success">{{ completed }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Scheduled</div>
+      <div class="fw-bold fs-3 text-warning">{{ scheduled }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Cancelled</div>
+      <div class="fw-bold fs-3 text-danger">{{ cancelled }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">No-Show</div>
+      <div class="fw-bold fs-3 text-secondary">{{ no_show }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Completion</div>
+      <div class="fw-bold fs-3 {% if completion_rate>=70 %}text-success{% elif completion_rate>=40 %}text-warning{% else %}text-danger{% endif %}">{{ completion_rate }}%</div>
+    </div>
+  </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-semibold">Status Distribution</div>
-            <div class="card-body">
-                <div class="chart-container"><canvas id="statusChart"></canvas></div>
-            </div>
+<div class="row g-4 mb-4">
+  <!-- Daily Trend -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Daily Appointment Trend</h6>
+        {% set max_appt = daily_trend | map(attribute='count') | max if daily_trend else 1 %}
+        <div class="d-flex align-items-end gap-1" style="height:110px">
+          {% for d in daily_trend %}
+          {% set h = (d.count / (max_appt if max_appt > 0 else 1) * 100)|int %}
+          <div class="d-flex flex-column align-items-center flex-fill" title="{{ d.date }}: {{ d.count }}">
+            <div class="small text-muted mb-1" style="font-size:.6rem">{{ d.count if d.count > 0 else '' }}</div>
+            <div class="rounded-top w-100" style="height:{{ [h,2]|max }}px;background:#34694f;opacity:0.75"></div>
+            <div class="text-muted mt-1 text-center" style="font-size:.55rem;line-height:1">{{ d.date.split()[0] }}<br>{{ d.date.split()[1] }}</div>
+          </div>
+          {% endfor %}
         </div>
+      </div>
     </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-semibold">Top Doctors by Appointments</div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light"><tr><th>Doctor</th><th class="text-end">Appointments</th></tr></thead>
-                    <tbody>
-                        {% for first, last, count in doctor_stats %}
-                        <tr><td>Dr. {{ first }} {{ last }}</td><td class="text-end fw-bold">{{ count }}</td></tr>
-                        {% else %}
-                        <tr><td colspan="2" class="text-center text-muted py-3">No data</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+  </div>
 
-{% block scripts %}
-<script>
-const ctx = document.getElementById('statusChart').getContext('2d');
-new Chart(ctx, {
-    type: 'pie',
-    data: {
-        labels: ['Completed', 'Scheduled', 'Cancelled'],
-        datasets: [{
-            data: [{{ completed }}, {{ scheduled }}, {{ cancelled }}],
-            backgroundColor: ['#198754', '#ffc107', '#dc3545'],
-        }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-});
-</script>
+  <!-- Status + Rates -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Performance Summary</h6>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>Completion Rate</span>
+            <span class="fw-semibold text-success">{{ completion_rate }}%</span>
+          </div>
+          <div class="progress" style="height:8px">
+            <div class="progress-bar bg-success" style="width:{{ completion_rate }}%"></div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>Cancellation Rate</span>
+            <span class="fw-semibold text-danger">{{ cancellation_rate }}%</span>
+          </div>
+          <div class="progress" style="height:8px">
+            <div class="progress-bar bg-danger" style="width:{{ cancellation_rate }}%"></div>
+          </div>
+        </div>
+        <hr>
+        <div class="row g-2 text-center">
+          {% for label, val, color in [('Completed', completed, '#16a34a'), ('Scheduled', scheduled, '#f59e0b'), ('Cancelled', cancelled, '#dc2626'), ('No-Show', no_show, '#6b7280')] %}
+          <div class="col-6">
+            <div class="p-2 rounded" style="background:{{ color }}15">
+              <div class="fw-bold" style="color:{{ color }}">{{ val }}</div>
+              <div class="small text-muted">{{ label }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Doctor Performance -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <div class="px-4 py-3 border-bottom">
+          <h6 class="fw-bold mb-0"><i class="fas fa-user-md me-2 text-primary"></i>Doctor Performance</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small align-middle">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Doctor</th>
+                <th>Specialization</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Done</th>
+                <th class="text-center pe-4">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fname, lname, spec, total_d, done in doctor_stats %}
+              {% set rate = (done / total_d * 100)|int if total_d > 0 else 0 %}
+              <tr>
+                <td class="ps-4 fw-semibold">Dr. {{ fname }} {{ lname }}</td>
+                <td class="text-muted">{{ spec or '—' }}</td>
+                <td class="text-center">{{ total_d }}</td>
+                <td class="text-center text-success">{{ done }}</td>
+                <td class="text-center pe-4">
+                  <span class="badge {% if rate>=80 %}bg-success{% elif rate>=50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                    {{ rate }}%
+                  </span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center py-4 text-muted">No data</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Reasons -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="fas fa-comment-medical me-2 text-info"></i>Common Visit Reasons</h6>
+        {% if reasons %}
+        {% set max_r = reasons[0][1] %}
+        {% for reason, cnt in reasons %}
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="text-capitalize">{{ reason[:40] }}{% if reason|length > 40 %}…{% endif %}</span>
+            <span class="fw-semibold">{{ cnt }}</span>
+          </div>
+          <div class="progress" style="height:5px">
+            <div class="progress-bar" style="width:{{ (cnt/max_r*100)|int }}%;background:#34694f"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4 small">No reason data recorded</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Appointments -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-list me-2 text-primary"></i>Recent Appointments</h6>
+      <span class="badge bg-primary">{{ recent_appts|length }} records</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Appt ID</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Reason</th>
+            <th class="text-center pe-4">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in recent_appts %}
+          <tr>
+            <td class="ps-4 font-monospace">{{ appt.appointment_id }}</td>
+            <td class="fw-medium">{{ appt.patient.full_name }}</td>
+            <td>Dr. {{ appt.doctor.full_name }}</td>
+            <td class="text-muted">{{ appt.appointment_date.strftime('%d %b %Y') }}</td>
+            <td><span class="badge bg-light text-dark">{{ appt.appointment_time }}</span></td>
+            <td class="text-muted">{{ (appt.reason or '—')[:30] }}</td>
+            <td class="text-center pe-4">
+              <span class="badge {% if appt.status=='completed' %}bg-success{% elif appt.status=='scheduled' %}bg-warning text-dark{% elif appt.status=='cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ appt.status|title }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center py-4 text-muted">No appointments in this period</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {% endblock %}

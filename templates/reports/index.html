@@ -1,58 +1,137 @@
 {% extends 'base.html' %}
-{% block title %}Reports - MediCare HMS{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
-<li class="breadcrumb-item active">Reports</li>
-{% endblock %}
-
+{% block title %}Reports & Analytics – {{ hospital_name }}{% endblock %}
 {% block content %}
-<h4 class="fw-bold mb-4"><i class="fas fa-chart-bar me-2 text-primary"></i>Reports & Analytics</h4>
 
-<div class="row g-3">
-    <div class="col-md-4">
-        <div class="card shadow-sm stat-card h-100">
-            <div class="card-body text-center py-4">
-                <div class="stat-icon bg-gradient-primary text-white mx-auto mb-3">
-                    <i class="fas fa-user-injured"></i>
-                </div>
-                <h5 class="fw-bold">Patient Report</h5>
-                <p class="text-muted small">New registrations, demographics, gender distribution</p>
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="{{ url_for('reports.patient_report') }}?period=month" class="btn btn-primary btn-sm">Monthly</a>
-                    <a href="{{ url_for('reports.patient_report') }}?period=year" class="btn btn-outline-primary btn-sm">Yearly</a>
-                </div>
-            </div>
-        </div>
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2" style="color:#2563eb"></i>Reports & Analytics</h4>
+    <small class="text-muted">Comprehensive insights for {{ hospital_name }}</small>
+  </div>
+  <div class="text-muted small">Generated: {{ now().strftime('%d %b %Y, %H:%M') if now is defined else '' }}</div>
+</div>
+
+<!-- Quick KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="fw-bold fs-3" style="color:#34694f">{{ stats.total_patients }}</div>
+      <div class="small text-muted">Total Patients</div>
+      <div class="small text-success mt-1"><i class="fas fa-arrow-up me-1"></i>+{{ stats.new_this_month }} this month</div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm stat-card h-100">
-            <div class="card-body text-center py-4">
-                <div class="stat-icon bg-gradient-success text-white mx-auto mb-3">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <h5 class="fw-bold">Appointment Report</h5>
-                <p class="text-muted small">Appointment trends, doctor performance, completion rates</p>
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="{{ url_for('reports.appointment_report') }}?period=month" class="btn btn-success btn-sm">Monthly</a>
-                    <a href="{{ url_for('reports.appointment_report') }}?period=year" class="btn btn-outline-success btn-sm">Yearly</a>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="fw-bold fs-3" style="color:#2563eb">{{ stats.appointments_this_month }}</div>
+      <div class="small text-muted">Appointments (Month)</div>
+      <div class="small text-primary mt-1"><i class="fas fa-check me-1"></i>{{ stats.completion_rate }}% completion</div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm stat-card h-100">
-            <div class="card-body text-center py-4">
-                <div class="stat-icon bg-gradient-warning text-white mx-auto mb-3">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <h5 class="fw-bold">Revenue Report</h5>
-                <p class="text-muted small">Billing summary, payment status, outstanding amounts</p>
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="{{ url_for('reports.revenue_report') }}?period=month" class="btn btn-warning btn-sm text-dark">Monthly</a>
-                    <a href="{{ url_for('reports.revenue_report') }}?period=year" class="btn btn-outline-warning btn-sm">Yearly</a>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="fw-bold fs-3" style="color:#34694f">{{ currency }}{{ "{:,.0f}".format(stats.revenue_this_month) }}</div>
+      <div class="small text-muted">Revenue (Month)</div>
+      <div class="small text-muted mt-1">Billed this month</div>
     </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="fw-bold fs-3 text-danger">{{ currency }}{{ "{:,.0f}".format(stats.outstanding) }}</div>
+      <div class="small text-muted">Outstanding</div>
+      <div class="small text-danger mt-1"><i class="fas fa-exclamation-circle me-1"></i>Unpaid balance</div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Cards -->
+<div class="row g-4">
+  <!-- Patient Report -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:52px;height:52px;border-radius:14px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center">
+            <i class="fas fa-user-injured fa-lg" style="color:#2563eb"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">Patient Report</h5>
+            <div class="small text-muted">Demographics & registrations</div>
+          </div>
+        </div>
+        <ul class="list-unstyled small text-muted mb-4">
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>New vs. total registrations</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Gender & age distribution</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Blood group breakdown</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Chronic conditions analysis</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Daily registration trend</li>
+          <li><i class="fas fa-check me-2 text-success"></i>Recent patient list</li>
+        </ul>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('reports.patient_report') }}?period=week" class="btn btn-sm btn-outline-primary flex-fill">Week</a>
+          <a href="{{ url_for('reports.patient_report') }}?period=month" class="btn btn-sm btn-primary flex-fill">Month</a>
+          <a href="{{ url_for('reports.patient_report') }}?period=year" class="btn btn-sm btn-outline-primary flex-fill">Year</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Appointment Report -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:52px;height:52px;border-radius:14px;background:rgba(52,105,79,.1);display:flex;align-items:center;justify-content:center">
+            <i class="fas fa-calendar-check fa-lg" style="color:#34694f"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">Appointment Report</h5>
+            <div class="small text-muted">Scheduling & doctor performance</div>
+          </div>
+        </div>
+        <ul class="list-unstyled small text-muted mb-4">
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Completion & cancellation rates</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Daily appointment trend</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Top doctors by volume</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Status breakdown</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Common visit reasons</li>
+          <li><i class="fas fa-check me-2 text-success"></i>Recent appointments list</li>
+        </ul>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('reports.appointment_report') }}?period=week" class="btn btn-sm btn-outline-success flex-fill">Week</a>
+          <a href="{{ url_for('reports.appointment_report') }}?period=month" class="btn btn-sm btn-success flex-fill">Month</a>
+          <a href="{{ url_for('reports.appointment_report') }}?period=year" class="btn btn-sm btn-outline-success flex-fill">Year</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Report -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:52px;height:52px;border-radius:14px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center">
+            <i class="fas fa-file-invoice-dollar fa-lg" style="color:#f59e0b"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">Revenue Report</h5>
+            <div class="small text-muted">Billing & financial analytics</div>
+          </div>
+        </div>
+        <ul class="list-unstyled small text-muted mb-4">
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Total billed vs. collected</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Collection rate gauge</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Daily revenue trend</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Payment status breakdown</li>
+          <li class="mb-1"><i class="fas fa-check me-2 text-success"></i>Top paying patients</li>
+          <li><i class="fas fa-check me-2 text-success"></i>Recent bills list</li>
+        </ul>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('reports.revenue_report') }}?period=week" class="btn btn-sm btn-outline-warning flex-fill">Week</a>
+          <a href="{{ url_for('reports.revenue_report') }}?period=month" class="btn btn-sm btn-warning text-dark flex-fill">Month</a>
+          <a href="{{ url_for('reports.revenue_report') }}?period=year" class="btn btn-sm btn-outline-warning flex-fill">Year</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

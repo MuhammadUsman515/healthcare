@@ -1,95 +1,234 @@
 {% extends 'base.html' %}
-{% block title %}Revenue Report - MediCare HMS{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Reports</a></li>
-<li class="breadcrumb-item active">Revenue Report</li>
-{% endblock %}
+{% block title %}Revenue Report – {{ hospital_name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0"><i class="fas fa-dollar-sign me-2 text-primary"></i>Revenue Report</h4>
-    <div class="d-flex gap-2 align-items-center">
-        <div class="btn-group no-print">
-            <a href="?period=week" class="btn btn-outline-primary btn-sm {% if period == 'week' %}active{% endif %}">Week</a>
-            <a href="?period=month" class="btn btn-outline-primary btn-sm {% if period == 'month' %}active{% endif %}">Month</a>
-            <a href="?period=year" class="btn btn-outline-primary btn-sm {% if period == 'year' %}active{% endif %}">Year</a>
-        </div>
-        <button onclick="window.print()" class="btn btn-outline-dark btn-sm no-print"><i class="fas fa-print me-1"></i>Print</button>
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4 no-print">
+  <div>
+    <h4 class="fw-bold mb-1"><i class="fas fa-file-invoice-dollar me-2 text-warning"></i>Revenue Report</h4>
+    <small class="text-muted">Period: {{ start.strftime('%d %b %Y') }} → {{ today.strftime('%d %b %Y') }}</small>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <div class="btn-group">
+      <a href="?period=week" class="btn btn-outline-primary btn-sm {% if period=='week' %}active{% endif %}">Week</a>
+      <a href="?period=month" class="btn btn-outline-primary btn-sm {% if period=='month' %}active{% endif %}">Month</a>
+      <a href="?period=year" class="btn btn-outline-primary btn-sm {% if period=='year' %}active{% endif %}">Year</a>
     </div>
+    <button onclick="window.print()" class="btn btn-outline-dark btn-sm"><i class="fas fa-print me-1"></i>Print</button>
+  </div>
 </div>
 
+<!-- Print Header (hidden on screen) -->
+<div class="print-header" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+    <div>
+      <h3 class="fw-bold mb-0">{{ hospital_name }}</h3>
+      <div class="text-muted small">Revenue Report · {{ start.strftime('%d %b %Y') }} – {{ today.strftime('%d %b %Y') }}</div>
+    </div>
+    <div class="text-muted small">Printed: {{ today.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+
+<!-- KPI Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card shadow-sm stat-card">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-primary text-white"><i class="fas fa-file-invoice-dollar"></i></div>
-                <div><div class="h4 fw-bold mb-0">${{ "%.2f"|format(total_billed) }}</div><div class="text-muted small">Total Billed</div></div>
-            </div>
-        </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Total Billed</div>
+      <div class="fw-bold fs-4" style="color:#2563eb">{{ currency }}{{ "{:,.2f}".format(total_billed) }}</div>
+      <div class="small text-muted">{{ total_bills }} bills</div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm stat-card">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-check-circle"></i></div>
-                <div><div class="h4 fw-bold mb-0">${{ "%.2f"|format(total_collected) }}</div><div class="text-muted small">Collected</div></div>
-            </div>
-        </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Collected</div>
+      <div class="fw-bold fs-4 text-success">{{ currency }}{{ "{:,.2f}".format(total_collected) }}</div>
+      <div class="small text-success">{{ collection_rate }}% rate</div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm stat-card">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-danger text-white"><i class="fas fa-exclamation-circle"></i></div>
-                <div><div class="h4 fw-bold mb-0">${{ "%.2f"|format(outstanding) }}</div><div class="text-muted small">Outstanding</div></div>
-            </div>
-        </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Outstanding</div>
+      <div class="fw-bold fs-4 text-danger">{{ currency }}{{ "{:,.2f}".format(outstanding) }}</div>
+      <div class="small text-muted">Unpaid balance</div>
     </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="small text-muted mb-1">Avg Bill Amount</div>
+      <div class="fw-bold fs-4" style="color:#f59e0b">{{ currency }}{{ "{:,.2f}".format(avg_bill) }}</div>
+      <div class="small text-muted">per invoice</div>
+    </div>
+  </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-semibold">Collection Rate</div>
-            <div class="card-body">
-                {% if total_billed > 0 %}
-                {% set rate = (total_collected / total_billed * 100)|round(1) %}
-                <div class="text-center mb-3">
-                    <div class="h2 fw-bold text-{% if rate >= 80 %}success{% elif rate >= 50 %}warning{% else %}danger{% endif %}">{{ rate }}%</div>
-                    <small class="text-muted">Collection Rate</small>
-                </div>
-                <div class="progress" style="height: 20px;">
-                    <div class="progress-bar bg-{% if rate >= 80 %}success{% elif rate >= 50 %}warning{% else %}danger{% endif %}" style="width: {{ rate }}%">{{ rate }}%</div>
-                </div>
-                {% else %}
-                <p class="text-center text-muted py-3">No billing data for this period</p>
-                {% endif %}
-            </div>
+<div class="row g-4 mb-4">
+  <!-- Collection Rate Gauge -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4 text-center">
+        <h6 class="fw-bold mb-4">Collection Rate</h6>
+        <div style="position:relative;display:inline-block;width:160px;height:160px">
+          <canvas id="gaugeChart" width="160" height="160"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-30%)">
+            <div class="fw-bold" style="font-size:2rem;color:{% if collection_rate>=80 %}#16a34a{% elif collection_rate>=50 %}#f59e0b{% else %}#dc2626{% endif %}">{{ collection_rate }}%</div>
+            <div class="small text-muted">Collected</div>
+          </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-semibold">Payment Status Breakdown</div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead class="table-light"><tr><th>Status</th><th class="text-center">Count</th><th class="text-end">Amount</th></tr></thead>
-                    <tbody>
-                        {% for status, count, amount in status_stats %}
-                        <tr>
-                            <td>
-                                {% if status == 'paid' %}<span class="badge bg-success">Paid</span>
-                                {% elif status == 'partial' %}<span class="badge bg-warning text-dark">Partial</span>
-                                {% else %}<span class="badge bg-danger">Pending</span>{% endif %}
-                            </td>
-                            <td class="text-center">{{ count }}</td>
-                            <td class="text-end fw-semibold">${{ "%.2f"|format(amount or 0) }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="3" class="text-center text-muted py-3">No billing data</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="mt-3 d-flex justify-content-between small">
+          <span class="text-muted">Billed: <strong>{{ currency }}{{ "{:,.0f}".format(total_billed) }}</strong></span>
+          <span class="text-muted">Paid: <strong>{{ currency }}{{ "{:,.0f}".format(total_collected) }}</strong></span>
         </div>
+        <div class="progress mt-2" style="height:10px;border-radius:5px">
+          <div class="progress-bar {% if collection_rate>=80 %}bg-success{% elif collection_rate>=50 %}bg-warning{% else %}bg-danger{% endif %}"
+               style="width:{{ collection_rate }}%"></div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Payment Status -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Payment Status Breakdown</h6>
+        {% for status, count, amount in status_stats %}
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge {% if status=='paid' %}bg-success{% elif status=='partial' %}bg-warning text-dark{% else %}bg-danger{% endif %} px-2 py-1">
+              {{ status|title }}
+            </span>
+            <span class="small text-muted">{{ count }} bills</span>
+          </div>
+          <span class="fw-semibold small">{{ currency }}{{ "{:,.2f}".format(amount or 0) }}</span>
+        </div>
+        {% if not loop.last %}<hr class="my-2">{% endif %}
+        {% else %}
+        <div class="text-center text-muted py-4 small">No billing data for this period</div>
+        {% endfor %}
+        {% if total_bills > 0 %}
+        <hr>
+        <div class="d-flex justify-content-between small fw-semibold">
+          <span>Total Bills</span>
+          <span>{{ total_bills }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Revenue Trend -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Daily Collections Trend</h6>
+        {% set max_rev = daily_revenue | map(attribute='amount') | max if daily_revenue else 1 %}
+        <div class="d-flex align-items-end gap-1" style="height:100px">
+          {% for d in daily_revenue %}
+          {% set h = (d.amount / (max_rev if max_rev > 0 else 1) * 90)|int %}
+          <div class="d-flex flex-column align-items-center flex-fill" title="{{ d.date }}: {{ currency }}{{ '{:,.0f}'.format(d.amount) }}">
+            <div class="rounded-top w-100" style="height:{{ [h,2]|max }}px;background:#f59e0b;opacity:0.8"></div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="d-flex justify-content-between small text-muted mt-1">
+          <span>{{ daily_revenue[0].date if daily_revenue else '' }}</span>
+          <span>{{ daily_revenue[-1].date if daily_revenue else '' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Paying Patients -->
+{% if top_patients %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Top Paying Patients</h6>
+      <span class="badge bg-warning text-dark">Top {{ top_patients|length }}</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">#</th>
+            <th>Patient</th>
+            <th>ID</th>
+            <th class="text-center">Bills</th>
+            <th class="text-end pe-4">Amount Paid</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fname, lname, pid, paid, bills in top_patients %}
+          <tr>
+            <td class="ps-4 text-muted">{{ loop.index }}</td>
+            <td class="fw-semibold">{{ fname }} {{ lname }}</td>
+            <td><span class="badge bg-light text-dark font-monospace">{{ pid }}</span></td>
+            <td class="text-center">{{ bills }}</td>
+            <td class="text-end pe-4 fw-bold text-success">{{ currency }}{{ "{:,.2f}".format(paid) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Bills -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between">
+      <h6 class="fw-bold mb-0"><i class="fas fa-list me-2 text-primary"></i>Recent Bills</h6>
+      <span class="badge bg-primary">{{ recent_bills|length }} records</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Bill #</th>
+            <th>Patient</th>
+            <th>Date</th>
+            <th class="text-end">Billed</th>
+            <th class="text-end">Paid</th>
+            <th class="text-end">Balance</th>
+            <th class="text-center pe-4">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bill in recent_bills %}
+          <tr>
+            <td class="ps-4 font-monospace">{{ bill.bill_number }}</td>
+            <td class="fw-medium">{{ bill.patient.full_name }}</td>
+            <td class="text-muted">{{ bill.bill_date.strftime('%d %b %Y') }}</td>
+            <td class="text-end">{{ currency }}{{ "{:,.2f}".format(bill.total_amount) }}</td>
+            <td class="text-end text-success">{{ currency }}{{ "{:,.2f}".format(bill.paid_amount) }}</td>
+            <td class="text-end {% if bill.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+              {{ currency }}{{ "{:,.2f}".format(bill.balance_due) }}
+            </td>
+            <td class="text-center pe-4">
+              <span class="badge {% if bill.payment_status=='paid' %}bg-success{% elif bill.payment_status=='partial' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                {{ bill.payment_status|title }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center py-4 text-muted">No bills in this period</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if recent_bills %}
+        <tfoot class="table-light fw-semibold">
+          <tr>
+            <td colspan="3" class="ps-4">Period Total</td>
+            <td class="text-end">{{ currency }}{{ "{:,.2f}".format(total_billed) }}</td>
+            <td class="text-end text-success">{{ currency }}{{ "{:,.2f}".format(total_collected) }}</td>
+            <td class="text-end text-danger">{{ currency }}{{ "{:,.2f}".format(outstanding) }}</td>
+            <td class="pe-4"></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}
