@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Dispatch Ambulance - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('ambulance.index') }}">Ambulance</a></li>
+<li class="breadcrumb-item active">New Dispatch</li>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="fw-bold mb-0"><i class="fas fa-ambulance me-2"></i>Emergency Dispatch</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Ambulance <span class="text-danger">*</span></label>
+                            <select name="ambulance_id" class="form-select" required>
+                                <option value="">Select Available Ambulance</option>
+                                {% for amb in available_ambs %}
+                                <option value="{{ amb.id }}">{{ amb.vehicle_number }} - {{ amb.vehicle_type }} ({{ amb.driver_name or 'No driver' }})</option>
+                                {% endfor %}
+                            </select>
+                            {% if not available_ambs %}
+                            <div class="text-danger small mt-1"><i class="fas fa-exclamation-circle me-1"></i>No ambulances available!</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Patient (if known)</label>
+                            <select name="patient_id" class="form-select">
+                                <option value="">Unknown / New Patient</option>
+                                {% for p in patients %}
+                                <option value="{{ p.id }}">{{ p.full_name }} ({{ p.patient_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Caller Name <span class="text-danger">*</span></label>
+                            <input type="text" name="caller_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Caller Phone <span class="text-danger">*</span></label>
+                            <input type="text" name="caller_phone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pickup Address <span class="text-danger">*</span></label>
+                            <textarea name="pickup_address" class="form-control" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Destination</label>
+                            <input type="text" name="destination" class="form-control" placeholder="e.g., Hospital Main Entrance">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes / Emergency Details</label>
+                            <textarea name="notes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger" {% if not available_ambs %}disabled{% endif %}>
+                            <i class="fas fa-ambulance me-2"></i>Dispatch Now
+                        </button>
+                        <a href="{{ url_for('ambulance.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

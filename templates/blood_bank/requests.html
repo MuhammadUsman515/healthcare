@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Blood Requests - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('blood_bank.index') }}">Blood Bank</a></li>
+<li class="breadcrumb-item active">Requests</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Blood Requests</h4>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('blood_bank.new_request') }}" class="btn btn-danger">
+            <i class="fas fa-plus me-1"></i>New Request
+        </a>
+        <a href="{{ url_for('blood_bank.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('blood_bank.requests_list') }}" class="btn btn-sm {% if status=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All</a>
+            <a href="{{ url_for('blood_bank.requests_list', status='pending') }}" class="btn btn-sm {% if status=='pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">Pending</a>
+            <a href="{{ url_for('blood_bank.requests_list', status='approved') }}" class="btn btn-sm {% if status=='approved' %}btn-info{% else %}btn-outline-info{% endif %}">Approved</a>
+            <a href="{{ url_for('blood_bank.requests_list', status='issued') }}" class="btn btn-sm {% if status=='issued' %}btn-success{% else %}btn-outline-success{% endif %}">Issued</a>
+            <a href="{{ url_for('blood_bank.requests_list', status='cancelled') }}" class="btn btn-sm {% if status=='cancelled' %}btn-danger{% else %}btn-outline-danger{% endif %}">Cancelled</a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Request #</th>
+                    <th>Patient</th>
+                    <th>Doctor</th>
+                    <th>Blood Group</th>
+                    <th>Units Req.</th>
+                    <th>Units Issued</th>
+                    <th>Purpose</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ req.request_number }}</span></td>
+                    <td>{{ req.patient.full_name }}</td>
+                    <td>{{ req.doctor.full_name }}</td>
+                    <td><span class="badge bg-danger">{{ req.blood_group }}</span></td>
+                    <td>{{ req.units_required }}</td>
+                    <td>{{ req.units_issued or '-' }}</td>
+                    <td>{{ req.purpose or '-' }}</td>
+                    <td>
+                        {% if req.urgency == 'emergency' %}
+                            <span class="badge bg-danger">Emergency</span>
+                        {% elif req.urgency == 'urgent' %}
+                            <span class="badge bg-warning text-dark">Urgent</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Normal</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if req.status == 'issued' %}
+                            <span class="badge bg-success">Issued</span>
+                        {% elif req.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif req.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% else %}
+                            <span class="badge bg-info">{{ req.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ req.request_date.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        {% if req.status == 'pending' %}
+                        <form method="post" action="{{ url_for('blood_bank.approve_request', id=req.id) }}" class="d-inline">
+                            <input type="hidden" name="units_issued" value="{{ req.units_required }}">
+                            <button class="btn btn-xs btn-success btn-sm">Issue</button>
+                        </form>
+                        <form method="post" action="{{ url_for('blood_bank.cancel_request', id=req.id) }}" class="d-inline">
+                            <button class="btn btn-xs btn-outline-danger btn-sm">Cancel</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="11" class="text-center text-muted py-4">No requests found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

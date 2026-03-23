@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}Ambulance Management - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Ambulance</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Ambulance Management</h4>
+        <p class="text-muted mb-0 small">Fleet management and dispatch</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('ambulance.new_dispatch') }}" class="btn btn-danger">
+            <i class="fas fa-ambulance me-2"></i>Dispatch Ambulance
+        </a>
+        <a href="{{ url_for('ambulance.new') }}" class="btn btn-outline-primary">
+            <i class="fas fa-plus me-1"></i>Add Vehicle
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-success shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-check-circle"></i></div>
+                <div><div class="h4 fw-bold mb-0 text-success">{{ available }}</div><div class="text-muted small">Available</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-danger shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-danger text-white"><i class="fas fa-ambulance"></i></div>
+                <div><div class="h4 fw-bold mb-0 text-danger">{{ dispatched }}</div><div class="text-muted small">Dispatched</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-warning text-white"><i class="fas fa-tools"></i></div>
+                <div><div class="h4 fw-bold mb-0 text-warning">{{ maintenance }}</div><div class="text-muted small">In Maintenance</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fas fa-ambulance me-2 text-primary"></i>Fleet ({{ ambulances|length }})</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Vehicle #</th><th>Type</th><th>Driver</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for amb in ambulances %}
+                        <tr>
+                            <td class="fw-semibold">{{ amb.vehicle_number }}</td>
+                            <td class="text-capitalize">{{ amb.vehicle_type }}</td>
+                            <td>{{ amb.driver_name or '-' }}</td>
+                            <td>{{ amb.driver_phone or '-' }}</td>
+                            <td>
+                                {% if amb.status == 'available' %}
+                                    <span class="badge bg-success">Available</span>
+                                {% elif amb.status == 'dispatched' %}
+                                    <span class="badge bg-danger">Dispatched</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Maintenance</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('ambulance.edit', id=amb.id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">No vehicles registered.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Dispatches</h6>
+                <a href="{{ url_for('ambulance.dispatches') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 small">
+                    <thead class="table-light">
+                        <tr><th>Dispatch #</th><th>Vehicle</th><th>Caller</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for d in recent_dispatches %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ d.dispatch_number }}</span></td>
+                            <td>{{ d.ambulance.vehicle_number }}</td>
+                            <td>{{ d.caller_name or '-' }}</td>
+                            <td>
+                                {% if d.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif d.status == 'dispatched' %}
+                                    <span class="badge bg-danger">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ d.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No dispatches yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

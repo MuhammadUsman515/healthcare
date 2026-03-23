@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Edit Ambulance - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('ambulance.index') }}">Ambulance</a></li>
+<li class="breadcrumb-item active">Edit Vehicle</li>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="fw-bold mb-0"><i class="fas fa-edit me-2 text-primary"></i>Edit Ambulance: {{ amb.vehicle_number }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Vehicle Number</label>
+                            <input type="text" name="vehicle_number" class="form-control" value="{{ amb.vehicle_number }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vehicle Type</label>
+                            <select name="vehicle_type" class="form-select">
+                                <option value="basic" {% if amb.vehicle_type=='basic' %}selected{% endif %}>Basic Life Support</option>
+                                <option value="advanced" {% if amb.vehicle_type=='advanced' %}selected{% endif %}>Advanced Life Support</option>
+                                <option value="neonatal" {% if amb.vehicle_type=='neonatal' %}selected{% endif %}>Neonatal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Driver Name</label>
+                            <input type="text" name="driver_name" class="form-control" value="{{ amb.driver_name or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Driver Phone</label>
+                            <input type="text" name="driver_phone" class="form-control" value="{{ amb.driver_phone or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="available" {% if amb.status=='available' %}selected{% endif %}>Available</option>
+                                <option value="dispatched" {% if amb.status=='dispatched' %}selected{% endif %}>Dispatched</option>
+                                <option value="maintenance" {% if amb.status=='maintenance' %}selected{% endif %}>Maintenance</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Service Date</label>
+                            <input type="date" name="last_service_date" class="form-control" value="{{ amb.last_service_date.strftime('%Y-%m-%d') if amb.last_service_date else '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Equipment</label>
+                            <textarea name="equipment" class="form-control" rows="3">{{ amb.equipment or '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Save Changes</button>
+                        <a href="{{ url_for('ambulance.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

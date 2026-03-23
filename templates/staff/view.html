@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}{{ member.first_name }} {{ member.last_name }} - Staff - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('staff.index') }}">Staff</a></li>
+<li class="breadcrumb-item active">{{ member.first_name }} {{ member.last_name }}</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{{ member.first_name }} {{ member.last_name }}</h4>
+        <p class="text-muted mb-0 small">Employee ID: <strong>{{ member.employee_id }}</strong></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('staff.edit', id=member.id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-edit me-1"></i>Edit
+        </a>
+        <a href="{{ url_for('staff.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-4">
+                <div class="avatar-lg bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px;height:80px;">
+                    <i class="fas fa-user text-primary fa-2x"></i>
+                </div>
+                <h5 class="fw-bold mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+                <span class="badge bg-primary text-capitalize mb-2">{{ member.role.replace('_',' ') }}</span><br>
+                {% if member.status == 'active' %}
+                    <span class="badge bg-success">Active</span>
+                {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Contact Info</h6></div>
+            <div class="card-body small">
+                <div class="mb-2"><i class="fas fa-phone text-muted me-2"></i>{{ member.phone or 'N/A' }}</div>
+                <div class="mb-2"><i class="fas fa-envelope text-muted me-2"></i>{{ member.email or 'N/A' }}</div>
+                <div class="mb-2"><i class="fas fa-map-marker-alt text-muted me-2"></i>{{ member.address or 'N/A' }}</div>
+                <div><i class="fas fa-phone-volume text-muted me-2"></i>Emergency: {{ member.emergency_contact or 'N/A' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Employment Details</h6></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Department</label>
+                        <div class="fw-semibold">{{ member.dept.name if member.dept else 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Shift</label>
+                        <div class="fw-semibold text-capitalize">{{ member.shift or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Join Date</label>
+                        <div class="fw-semibold">{{ member.join_date.strftime('%B %d, %Y') if member.join_date else 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Salary</label>
+                        <div class="fw-semibold">${{ "%.2f"|format(member.salary) if member.salary else 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Qualification</label>
+                        <div class="fw-semibold">{{ member.qualification or 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Employee ID</label>
+                        <div class="fw-semibold">{{ member.employee_id }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Account Details</h6></div>
+            <div class="card-body">
+                {% if member.user_rel %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Username</label>
+                        <div class="fw-semibold">{{ member.user_rel.username }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Account Status</label>
+                        <div>
+                            {% if member.user_rel.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted">No account linked.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

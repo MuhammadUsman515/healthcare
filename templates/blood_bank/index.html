@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}Blood Bank - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Blood Bank</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Blood Bank</h4>
+        <p class="text-muted mb-0 small">Manage blood inventory and requests</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('blood_bank.new_request') }}" class="btn btn-danger">
+            <i class="fas fa-tint me-2"></i>New Blood Request
+        </a>
+        <a href="{{ url_for('blood_bank.requests_list') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-list me-2"></i>All Requests
+        </a>
+    </div>
+</div>
+
+<!-- Blood Inventory Grid -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="fas fa-tint me-2 text-danger"></i>Blood Inventory</h6>
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addStockModal">
+            <i class="fas fa-plus me-1"></i>Add Stock
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for inv in inventory %}
+            <div class="col-6 col-md-3">
+                <div class="card border {% if inv.units_available == 0 %}border-danger{% elif inv.units_available < 5 %}border-warning{% else %}border-success{% endif %}">
+                    <div class="card-body text-center py-3">
+                        <div class="display-6 fw-bold {% if inv.units_available == 0 %}text-danger{% elif inv.units_available < 5 %}text-warning{% else %}text-success{% endif %}">
+                            {{ inv.blood_group }}
+                        </div>
+                        <div class="h4 fw-bold mb-0">{{ inv.units_available }}</div>
+                        <div class="text-muted small">Units Available</div>
+                        {% if inv.units_reserved > 0 %}
+                        <div class="text-warning small">{{ inv.units_reserved }} Reserved</div>
+                        {% endif %}
+                        {% if inv.units_available == 0 %}
+                            <span class="badge bg-danger mt-1">Out of Stock</span>
+                        {% elif inv.units_available < 5 %}
+                            <span class="badge bg-warning text-dark mt-1">Low Stock</span>
+                        {% else %}
+                            <span class="badge bg-success mt-1">Available</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Pending Requests -->
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fas fa-clock me-2 text-warning"></i>Pending Requests ({{ pending_requests|length }})</h6>
+                <a href="{{ url_for('blood_bank.requests_list', status='pending') }}" class="btn btn-sm btn-outline-warning">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 small">
+                    <thead class="table-light">
+                        <tr><th>Request #</th><th>Patient</th><th>Group</th><th>Units</th><th>Urgency</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending_requests[:5] %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ req.request_number }}</span></td>
+                            <td>{{ req.patient.full_name }}</td>
+                            <td><span class="badge bg-danger">{{ req.blood_group }}</span></td>
+                            <td>{{ req.units_required }}</td>
+                            <td>
+                                {% if req.urgency == 'emergency' %}
+                                    <span class="badge bg-danger">Emergency</span>
+                                {% elif req.urgency == 'urgent' %}
+                                    <span class="badge bg-warning text-dark">Urgent</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Normal</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" action="{{ url_for('blood_bank.approve_request', id=req.id) }}" class="d-inline">
+                                    <input type="hidden" name="units_issued" value="{{ req.units_required }}">
+                                    <button type="submit" class="btn btn-xs btn-success btn-sm">Issue</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">No pending requests</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="fw-bold mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Transactions</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 small">
+                    <thead class="table-light">
+                        <tr><th>Request #</th><th>Patient</th><th>Group</th><th>Status</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for req in recent_requests %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ req.request_number }}</span></td>
+                            <td>{{ req.patient.full_name }}</td>
+                            <td><span class="badge bg-danger">{{ req.blood_group }}</span></td>
+                            <td>
+                                {% if req.status == 'issued' %}
+                                    <span class="badge bg-success">Issued</span>
+                                {% elif req.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif req.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ req.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ req.request_date.strftime('%b %d') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No requests yet</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Stock Modal -->
+<div class="modal fade" id="addStockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-tint me-2 text-danger"></i>Add Blood Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{{ url_for('blood_bank.update_stock') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Blood Group</label>
+                        <select name="blood_group" class="form-select" required>
+                            {% for inv in inventory %}
+                            <option value="{{ inv.blood_group }}">{{ inv.blood_group }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Units to Add</label>
+                        <input type="number" name="units" class="form-control" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-plus me-1"></i>Add Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

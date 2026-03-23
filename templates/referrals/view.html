@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Referral {{ referral.referral_number }} - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('referrals.index') }}">Referrals</a></li>
+<li class="breadcrumb-item active">{{ referral.referral_number }}</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Referral: {{ referral.referral_number }}</h4>
+        <p class="text-muted mb-0 small">Created on {{ referral.referral_date.strftime('%B %d, %Y') }}</p>
+    </div>
+    <a href="{{ url_for('referrals.index') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Referral Details</h6></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Patient</label>
+                        <div class="fw-semibold">{{ referral.patient.full_name }}</div>
+                        <div class="text-muted small">{{ referral.patient.patient_id }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Referring Doctor</label>
+                        <div class="fw-semibold">{{ referral.referring_doctor.full_name }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Referred To</label>
+                        <div class="fw-semibold">
+                            {% if referral.referred_to_doctor %}
+                                {{ referral.referred_to_doctor.full_name }}
+                            {% elif referral.referred_to_department %}
+                                {{ referral.referred_to_department.name }} (Department)
+                            {% elif referral.referred_to_hospital %}
+                                {{ referral.referred_to_hospital }} (External)
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Appointment Date</label>
+                        <div class="fw-semibold">{{ referral.appointment_date.strftime('%B %d, %Y') if referral.appointment_date else 'Not scheduled' }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small">Reason</label>
+                        <div>{{ referral.reason }}</div>
+                    </div>
+                    {% if referral.notes %}
+                    <div class="col-12">
+                        <label class="text-muted small">Notes</label>
+                        <div>{{ referral.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Status</h6></div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Urgency</label>
+                    <div>
+                        {% if referral.urgency == 'emergency' %}
+                            <span class="badge bg-danger fs-6">Emergency</span>
+                        {% elif referral.urgency == 'urgent' %}
+                            <span class="badge bg-warning text-dark fs-6">Urgent</span>
+                        {% else %}
+                            <span class="badge bg-secondary fs-6">Routine</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="text-muted small">Current Status</label>
+                    <div>
+                        {% if referral.status == 'pending' %}
+                            <span class="badge bg-warning text-dark fs-6">Pending</span>
+                        {% elif referral.status == 'accepted' %}
+                            <span class="badge bg-info fs-6">Accepted</span>
+                        {% elif referral.status == 'completed' %}
+                            <span class="badge bg-success fs-6">Completed</span>
+                        {% else %}
+                            <span class="badge bg-danger fs-6">Cancelled</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('referrals.update_status', id=referral.id) }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Update Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="pending" {% if referral.status=='pending' %}selected{% endif %}>Pending</option>
+                            <option value="accepted" {% if referral.status=='accepted' %}selected{% endif %}>Accepted</option>
+                            <option value="completed" {% if referral.status=='completed' %}selected{% endif %}>Completed</option>
+                            <option value="cancelled" {% if referral.status=='cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

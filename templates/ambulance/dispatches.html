@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Ambulance Dispatches - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('ambulance.index') }}">Ambulance</a></li>
+<li class="breadcrumb-item active">Dispatches</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Ambulance Dispatches</h4>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('ambulance.new_dispatch') }}" class="btn btn-danger">
+            <i class="fas fa-ambulance me-1"></i>New Dispatch
+        </a>
+        <a href="{{ url_for('ambulance.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('ambulance.dispatches') }}" class="btn btn-sm {% if status=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All</a>
+            <a href="{{ url_for('ambulance.dispatches', status='dispatched') }}" class="btn btn-sm {% if status=='dispatched' %}btn-danger{% else %}btn-outline-danger{% endif %}">Active</a>
+            <a href="{{ url_for('ambulance.dispatches', status='completed') }}" class="btn btn-sm {% if status=='completed' %}btn-success{% else %}btn-outline-success{% endif %}">Completed</a>
+            <a href="{{ url_for('ambulance.dispatches', status='cancelled') }}" class="btn btn-sm {% if status=='cancelled' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Cancelled</a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Dispatch #</th>
+                    <th>Vehicle</th>
+                    <th>Patient</th>
+                    <th>Caller</th>
+                    <th>Pickup Address</th>
+                    <th>Dispatch Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in dispatches %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ d.dispatch_number }}</span></td>
+                    <td class="fw-semibold">{{ d.ambulance.vehicle_number }}</td>
+                    <td>{{ d.patient.full_name if d.patient else 'Unknown' }}</td>
+                    <td>{{ d.caller_name }}<br><small class="text-muted">{{ d.caller_phone }}</small></td>
+                    <td class="small">{{ d.pickup_address }}</td>
+                    <td class="small">{{ d.dispatch_time.strftime('%b %d, %H:%M') if d.dispatch_time else '-' }}</td>
+                    <td>
+                        {% if d.status == 'dispatched' %}
+                            <span class="badge bg-danger">Active</span>
+                        {% elif d.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif d.status == 'en_route' %}
+                            <span class="badge bg-info">En Route</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ d.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if d.status == 'dispatched' or d.status == 'en_route' %}
+                        <form method="post" action="{{ url_for('ambulance.complete_dispatch', id=d.id) }}" class="d-inline">
+                            <button class="btn btn-sm btn-success">Complete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No dispatches found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

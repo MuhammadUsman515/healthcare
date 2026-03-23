@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}New Blood Request - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('blood_bank.index') }}">Blood Bank</a></li>
+<li class="breadcrumb-item active">New Request</li>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="fw-bold mb-0"><i class="fas fa-tint me-2 text-danger"></i>New Blood Request</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Patient <span class="text-danger">*</span></label>
+                            <select name="patient_id" class="form-select" required>
+                                <option value="">Select Patient</option>
+                                {% for p in patients %}
+                                <option value="{{ p.id }}">{{ p.full_name }} ({{ p.patient_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Requesting Doctor <span class="text-danger">*</span></label>
+                            <select name="doctor_id" class="form-select" required>
+                                <option value="">Select Doctor</option>
+                                {% for d in doctors %}
+                                <option value="{{ d.id }}">{{ d.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Blood Group <span class="text-danger">*</span></label>
+                            <select name="blood_group" class="form-select" required>
+                                <option value="">Select Blood Group</option>
+                                {% for bg in blood_groups %}
+                                <option value="{{ bg }}">{{ bg }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Units Required <span class="text-danger">*</span></label>
+                            <input type="number" name="units_required" class="form-control" min="1" value="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Urgency</label>
+                            <select name="urgency" class="form-select">
+                                <option value="normal">Normal</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="emergency">Emergency</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Purpose</label>
+                            <input type="text" name="purpose" class="form-control" placeholder="e.g., Surgery, Transfusion">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Request Date</label>
+                            <input type="date" name="request_date" class="form-control" value="{{ today.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-tint me-2"></i>Submit Request</button>
+                        <a href="{{ url_for('blood_bank.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -12,6 +12,14 @@ from routes.pharmacy import pharmacy_bp
 from routes.wards import wards_bp
 from routes.departments import departments_bp
 from routes.reports import reports_bp
+from routes.staff import staff_bp
+from routes.blood_bank import blood_bank_bp
+from routes.ambulance import ambulance_bp
+from routes.opd import opd_bp
+from routes.referrals import referrals_bp
+from routes.lab import lab_bp
+from routes.purchase_orders import po_bp
+from routes.audit import audit_bp
 
 
 def create_app():
@@ -30,6 +38,7 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # Core modules
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(patients_bp)
@@ -40,6 +49,16 @@ def create_app():
     app.register_blueprint(wards_bp)
     app.register_blueprint(departments_bp)
     app.register_blueprint(reports_bp)
+
+    # Enterprise modules
+    app.register_blueprint(staff_bp)
+    app.register_blueprint(blood_bank_bp)
+    app.register_blueprint(ambulance_bp)
+    app.register_blueprint(opd_bp)
+    app.register_blueprint(referrals_bp)
+    app.register_blueprint(lab_bp)
+    app.register_blueprint(po_bp)
+    app.register_blueprint(audit_bp)
 
     return app
 

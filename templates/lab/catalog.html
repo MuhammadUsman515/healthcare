@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Lab Test Catalog - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('lab.index') }}">Lab</a></li>
+<li class="breadcrumb-item active">Test Catalog</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Lab Test Catalog</h4>
+    <a href="{{ url_for('lab.new_catalog') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>Add Test
+    </a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-5">
+                <input type="text" name="search" class="form-control" placeholder="Search by name or code..." value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-select">
+                    <option value="all" {% if category=='all' %}selected{% endif %}>All Categories</option>
+                    <option value="Hematology" {% if category=='Hematology' %}selected{% endif %}>Hematology</option>
+                    <option value="Biochemistry" {% if category=='Biochemistry' %}selected{% endif %}>Biochemistry</option>
+                    <option value="Microbiology" {% if category=='Microbiology' %}selected{% endif %}>Microbiology</option>
+                    <option value="Radiology" {% if category=='Radiology' %}selected{% endif %}>Radiology</option>
+                    <option value="Pathology" {% if category=='Pathology' %}selected{% endif %}>Pathology</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>Code</th><th>Test Name</th><th>Category</th><th>Sample</th><th>Normal Range</th><th>TAT (hrs)</th><th>Price</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                {% for test in tests %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ test.code }}</span></td>
+                    <td class="fw-semibold">{{ test.name }}</td>
+                    <td>{{ test.category }}</td>
+                    <td>{{ test.sample_type or '-' }}</td>
+                    <td class="small">{{ test.normal_range or '-' }} {{ test.unit or '' }}</td>
+                    <td>{{ test.turnaround_time or '-' }}</td>
+                    <td>${{ "%.2f"|format(test.price) }}</td>
+                    <td>
+                        {% if test.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No tests in catalog.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

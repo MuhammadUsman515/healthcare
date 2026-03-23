@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Add Staff - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('staff.index') }}">Staff</a></li>
+<li class="breadcrumb-item active">Add Staff</li>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="fw-bold mb-0"><i class="fas fa-user-plus me-2 text-primary"></i>Add New Staff Member</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <h6 class="fw-semibold text-primary mb-3 border-bottom pb-2">Account Details</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" name="password" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Role <span class="text-danger">*</span></label>
+                            <select name="role" class="form-select" required>
+                                <option value="">Select Role</option>
+                                <option value="nurse">Nurse</option>
+                                <option value="receptionist">Receptionist</option>
+                                <option value="pharmacist">Pharmacist</option>
+                                <option value="lab_tech">Lab Technician</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-semibold text-primary mb-3 border-bottom pb-2">Personal Information</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="first_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" name="last_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Department</label>
+                            <select name="department_id" class="form-select">
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Shift</label>
+                            <select name="shift" class="form-select">
+                                <option value="">Select Shift</option>
+                                <option value="morning">Morning</option>
+                                <option value="afternoon">Afternoon</option>
+                                <option value="night">Night</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Join Date</label>
+                            <input type="date" name="join_date" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Salary</label>
+                            <input type="number" name="salary" class="form-control" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Qualification</label>
+                            <input type="text" name="qualification" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Emergency Contact</label>
+                            <input type="text" name="emergency_contact" class="form-control" placeholder="Name - Phone">
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Add Staff Member</button>
+                        <a href="{{ url_for('staff.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

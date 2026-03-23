@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Referrals - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Referrals</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Patient Referrals</h4>
+        <p class="text-muted mb-0 small">Inter-departmental and external referrals</p>
+    </div>
+    <a href="{{ url_for('referrals.new') }}" class="btn btn-primary">
+        <i class="fas fa-share me-2"></i>New Referral
+    </a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('referrals.index') }}" class="btn btn-sm {% if status=='all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All</a>
+            <a href="{{ url_for('referrals.index', status='pending') }}" class="btn btn-sm {% if status=='pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">Pending</a>
+            <a href="{{ url_for('referrals.index', status='accepted') }}" class="btn btn-sm {% if status=='accepted' %}btn-info{% else %}btn-outline-info{% endif %}">Accepted</a>
+            <a href="{{ url_for('referrals.index', status='completed') }}" class="btn btn-sm {% if status=='completed' %}btn-success{% else %}btn-outline-success{% endif %}">Completed</a>
+            <a href="{{ url_for('referrals.index', status='cancelled') }}" class="btn btn-sm {% if status=='cancelled' %}btn-danger{% else %}btn-outline-danger{% endif %}">Cancelled</a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Referral #</th>
+                    <th>Patient</th>
+                    <th>Referring Doctor</th>
+                    <th>Referred To</th>
+                    <th>Reason</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ref in referrals %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ ref.referral_number }}</span></td>
+                    <td>{{ ref.patient.full_name }}</td>
+                    <td>{{ ref.referring_doctor.full_name }}</td>
+                    <td>
+                        {% if ref.referred_to_doctor %}
+                            {{ ref.referred_to_doctor.full_name }}
+                        {% elif ref.referred_to_department %}
+                            {{ ref.referred_to_department.name }}
+                        {% elif ref.referred_to_hospital %}
+                            {{ ref.referred_to_hospital }} (External)
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ ref.reason[:40] if ref.reason else '-' }}...</td>
+                    <td>
+                        {% if ref.urgency == 'emergency' %}
+                            <span class="badge bg-danger">Emergency</span>
+                        {% elif ref.urgency == 'urgent' %}
+                            <span class="badge bg-warning text-dark">Urgent</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Routine</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ref.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif ref.status == 'accepted' %}
+                            <span class="badge bg-info">Accepted</span>
+                        {% elif ref.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ ref.referral_date.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        <a href="{{ url_for('referrals.view', id=ref.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No referrals found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

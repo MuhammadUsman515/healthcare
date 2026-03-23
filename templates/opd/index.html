@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}OPD Queue - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">OPD Queue</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">OPD Queue Management</h4>
+        <p class="text-muted mb-0 small">{{ queue_date.strftime('%A, %B %d, %Y') }}</p>
+    </div>
+    <a href="{{ url_for('opd.checkin') }}" class="btn btn-primary">
+        <i class="fas fa-user-check me-2"></i>Patient Check-in
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-warning shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-warning text-white"><i class="fas fa-clock"></i></div>
+                <div><div class="h4 fw-bold mb-0 text-warning">{{ waiting }}</div><div class="text-muted small">Waiting</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-info text-white"><i class="fas fa-stethoscope"></i></div>
+                <div><div class="h4 fw-bold mb-0 text-info">{{ in_consult }}</div><div class="text-muted small">In Consultation</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-check-circle"></i></div>
+                <div><div class="h4 fw-bold mb-0 text-success">{{ completed }}</div><div class="text-muted small">Completed</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon bg-gradient-primary text-white"><i class="fas fa-users"></i></div>
+                <div><div class="h4 fw-bold mb-0">{{ queue|length }}</div><div class="text-muted small">Total Today</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <input type="date" name="date" class="form-control form-control-sm" value="{{ queue_date.strftime('%Y-%m-%d') }}">
+            </div>
+            <div class="col-md-3">
+                <select name="department" class="form-select form-select-sm">
+                    <option value="all">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if dept_filter==dept.id|string %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Queue Table -->
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Token</th>
+                    <th>Patient</th>
+                    <th>Doctor</th>
+                    <th>Department</th>
+                    <th>Priority</th>
+                    <th>Reason</th>
+                    <th>Check-in</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in queue %}
+                <tr class="{% if entry.priority == 'emergency' %}table-danger{% elif entry.priority == 'urgent' %}table-warning{% endif %}">
+                    <td>
+                        <span class="badge bg-primary fs-6">{{ entry.token_number }}</span>
+                    </td>
+                    <td class="fw-semibold">{{ entry.patient.full_name }}</td>
+                    <td>{{ entry.doctor.full_name if entry.doctor else '-' }}</td>
+                    <td>{{ entry.dept.name if entry.dept else '-' }}</td>
+                    <td>
+                        {% if entry.priority == 'emergency' %}
+                            <span class="badge bg-danger">Emergency</span>
+                        {% elif entry.priority == 'urgent' %}
+                            <span class="badge bg-warning text-dark">Urgent</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Normal</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ entry.reason or '-' }}</td>
+                    <td class="small">{{ entry.check_in_time.strftime('%H:%M') if entry.check_in_time else '-' }}</td>
+                    <td>
+                        {% if entry.status == 'waiting' %}
+                            <span class="badge bg-warning text-dark">Waiting</span>
+                        {% elif entry.status == 'in_consultation' %}
+                            <span class="badge bg-info">In Consultation</span>
+                        {% elif entry.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ entry.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if entry.status == 'waiting' %}
+                        <form method="post" action="{{ url_for('opd.call_patient', id=entry.id) }}" class="d-inline">
+                            <button class="btn btn-xs btn-info btn-sm">Call</button>
+                        </form>
+                        <form method="post" action="{{ url_for('opd.cancel', id=entry.id) }}" class="d-inline">
+                            <button class="btn btn-xs btn-outline-danger btn-sm">Cancel</button>
+                        </form>
+                        {% elif entry.status == 'in_consultation' %}
+                        <form method="post" action="{{ url_for('opd.complete', id=entry.id) }}" class="d-inline">
+                            <button class="btn btn-xs btn-success btn-sm">Done</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No patients in queue for today.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

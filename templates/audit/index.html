@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Audit Logs - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Audit Logs</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Audit Logs</h4>
+        <p class="text-muted mb-0 small">System activity audit trail</p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-3">
+                <select name="user" class="form-select form-select-sm">
+                    <option value="all">All Users</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if user_filter==u.id|string %}selected{% endif %}>{{ u.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="all" {% if status=='all' %}selected{% endif %}>All Status</option>
+                    <option value="success" {% if status=='success' %}selected{% endif %}>Success</option>
+                    <option value="failure" {% if status=='failure' %}selected{% endif %}>Failure</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr><th>Time</th><th>User</th><th>Action</th><th>Resource</th><th>Description</th><th>IP</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td class="text-muted">{{ log.created_at.strftime('%b %d %H:%M') }}</td>
+                    <td>{{ log.user.username if log.user else 'System' }}</td>
+                    <td><span class="badge bg-secondary">{{ log.action }}</span></td>
+                    <td>{{ log.resource_type or '-' }}</td>
+                    <td>{{ log.description[:60] if log.description else '-' }}</td>
+                    <td class="text-muted">{{ log.ip_address or '-' }}</td>
+                    <td>
+                        {% if log.status == 'success' %}
+                            <span class="badge bg-success">Success</span>
+                        {% else %}
+                            <span class="badge bg-danger">Failure</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No audit logs found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if logs.pages > 1 %}
+    <div class="card-footer bg-white">
+        <nav>
+            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                {% if logs.has_prev %}
+                <li class="page-item"><a class="page-link" href="?page={{ logs.prev_num }}&user={{ user_filter }}&status={{ status }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ logs.page }} of {{ logs.pages }}</span></li>
+                {% if logs.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ logs.next_num }}&user={{ user_filter }}&status={{ status }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

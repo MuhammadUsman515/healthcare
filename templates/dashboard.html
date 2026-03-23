@@ -9,12 +9,15 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-1">Dashboard</h4>
+        <h4 class="fw-bold mb-1">Enterprise Dashboard</h4>
         <p class="text-muted mb-0 small">
             <i class="fas fa-calendar me-1"></i>{{ today.strftime('%A, %B %d, %Y') }}
         </p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ url_for('opd.checkin') }}" class="btn btn-outline-success">
+            <i class="fas fa-ticket-alt me-2"></i>OPD Check-in
+        </a>
         <a href="{{ url_for('appointments.new') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>New Appointment
         </a>
@@ -24,14 +27,12 @@
     </div>
 </div>
 
-<!-- Stats Row -->
-<div class="row g-3 mb-4">
+<!-- Row 1: Core Stats -->
+<div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-primary text-white">
-                    <i class="fas fa-user-injured"></i>
-                </div>
+                <div class="stat-icon bg-gradient-primary text-white"><i class="fas fa-user-injured"></i></div>
                 <div>
                     <div class="h4 fw-bold mb-0">{{ total_patients }}</div>
                     <div class="text-muted small">Total Patients</div>
@@ -42,9 +43,7 @@
     <div class="col-6 col-lg-3">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-success text-white">
-                    <i class="fas fa-user-md"></i>
-                </div>
+                <div class="stat-icon bg-gradient-success text-white"><i class="fas fa-user-md"></i></div>
                 <div>
                     <div class="h4 fw-bold mb-0">{{ total_doctors }}</div>
                     <div class="text-muted small">Active Doctors</div>
@@ -55,9 +54,7 @@
     <div class="col-6 col-lg-3">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-warning text-white">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
+                <div class="stat-icon bg-gradient-warning text-white"><i class="fas fa-calendar-check"></i></div>
                 <div>
                     <div class="h4 fw-bold mb-0">{{ today_appointments }}</div>
                     <div class="text-muted small">Today's Appointments</div>
@@ -68,9 +65,7 @@
     <div class="col-6 col-lg-3">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-danger text-white">
-                    <i class="fas fa-bed"></i>
-                </div>
+                <div class="stat-icon bg-gradient-danger text-white"><i class="fas fa-bed"></i></div>
                 <div>
                     <div class="h4 fw-bold mb-0">{{ admitted_patients }}</div>
                     <div class="text-muted small">Admitted Patients</div>
@@ -80,50 +75,78 @@
     </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-info text-white">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
+<!-- Row 2: Finance & Operations -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div class="stat-icon bg-gradient-info text-white" style="min-width:42px"><i class="fas fa-dollar-sign"></i></div>
                 <div>
-                    <div class="h5 fw-bold mb-0">${{ "%.0f"|format(monthly_revenue) }}</div>
-                    <div class="text-muted small">Monthly Revenue</div>
+                    <div class="h6 fw-bold mb-0">${{ "%.0f"|format(monthly_revenue) }}</div>
+                    <div class="text-muted" style="font-size:11px">Monthly Revenue</div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-purple text-white">
-                    <i class="fas fa-file-invoice"></i>
-                </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div class="stat-icon bg-gradient-danger text-white" style="min-width:42px"><i class="fas fa-exclamation-circle"></i></div>
                 <div>
-                    <div class="h5 fw-bold mb-0">{{ pending_bills }}</div>
-                    <div class="text-muted small">Pending Bills</div>
+                    <div class="h6 fw-bold mb-0">${{ "%.0f"|format(outstanding) }}</div>
+                    <div class="text-muted" style="font-size:11px">Outstanding</div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="card stat-card shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="stat-icon bg-gradient-warning text-white">
-                    <i class="fas fa-pills"></i>
-                </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div class="stat-icon bg-gradient-warning text-white" style="min-width:42px"><i class="fas fa-clock"></i></div>
                 <div>
-                    <div class="h5 fw-bold mb-0">{{ low_stock }}</div>
-                    <div class="text-muted small">Low Stock Items</div>
+                    <div class="h6 fw-bold mb-0">{{ opd_waiting }}</div>
+                    <div class="text-muted" style="font-size:11px">OPD Waiting</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div class="stat-icon bg-gradient-success text-white" style="min-width:42px"><i class="fas fa-users-cog"></i></div>
+                <div>
+                    <div class="h6 fw-bold mb-0">{{ total_staff }}</div>
+                    <div class="text-muted" style="font-size:11px">Active Staff</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card shadow-sm h-100 {% if critical_blood > 0 %}border-danger{% endif %}">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div class="stat-icon bg-gradient-danger text-white" style="min-width:42px"><i class="fas fa-tint"></i></div>
+                <div>
+                    <div class="h6 fw-bold mb-0 {% if critical_blood > 0 %}text-danger{% endif %}">{{ critical_blood }}</div>
+                    <div class="text-muted" style="font-size:11px">Critical Blood Stock</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="card stat-card shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div class="stat-icon bg-gradient-success text-white" style="min-width:42px"><i class="fas fa-ambulance"></i></div>
+                <div>
+                    <div class="h6 fw-bold mb-0">{{ ambulances_available }}/{{ ambulances_total }}</div>
+                    <div class="text-muted" style="font-size:11px">Ambulances Free</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Charts and Tables -->
-<div class="row g-3 mb-4">
+<!-- Row 3: Charts and Quick Stats -->
+<div class="row g-3 mb-3">
     <div class="col-lg-8">
         <div class="card shadow-sm">
             <div class="card-header bg-white border-bottom-0 pt-3">
@@ -136,6 +159,116 @@
             </div>
         </div>
     </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom-0 pt-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-bell me-2 text-warning"></i>Alerts & Notices</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% if low_stock > 0 %}
+                    <li class="list-group-item py-2 border-start border-warning border-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small"><i class="fas fa-pills text-warning me-2"></i>Low Stock Medicines</span>
+                            <a href="{{ url_for('pharmacy.index', filter='low_stock') }}" class="badge bg-warning text-dark">{{ low_stock }}</a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if pending_bills > 0 %}
+                    <li class="list-group-item py-2 border-start border-danger border-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small"><i class="fas fa-file-invoice text-danger me-2"></i>Pending Bills</span>
+                            <a href="{{ url_for('billing.index', status='pending') }}" class="badge bg-danger">{{ pending_bills }}</a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if pending_blood > 0 %}
+                    <li class="list-group-item py-2 border-start border-danger border-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small"><i class="fas fa-tint text-danger me-2"></i>Pending Blood Requests</span>
+                            <a href="{{ url_for('blood_bank.requests_list', status='pending') }}" class="badge bg-danger">{{ pending_blood }}</a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if active_dispatches > 0 %}
+                    <li class="list-group-item py-2 border-start border-info border-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small"><i class="fas fa-ambulance text-info me-2"></i>Active Dispatches</span>
+                            <a href="{{ url_for('ambulance.dispatches', status='dispatched') }}" class="badge bg-info">{{ active_dispatches }}</a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if pending_referrals > 0 %}
+                    <li class="list-group-item py-2 border-start border-secondary border-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small"><i class="fas fa-share-alt text-secondary me-2"></i>Pending Referrals</span>
+                            <a href="{{ url_for('referrals.index', status='pending') }}" class="badge bg-secondary">{{ pending_referrals }}</a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if opd_waiting > 0 %}
+                    <li class="list-group-item py-2 border-start border-warning border-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small"><i class="fas fa-clock text-warning me-2"></i>OPD Patients Waiting</span>
+                            <a href="{{ url_for('opd.index') }}" class="badge bg-warning text-dark">{{ opd_waiting }}</a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if not low_stock and not pending_bills and not pending_blood and not active_dispatches and not pending_referrals and not opd_waiting %}
+                    <li class="list-group-item text-muted small text-center py-4">
+                        <i class="fas fa-check-circle text-success me-1"></i> All systems normal
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 4: Quick Actions + Department + Today's Appointments -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="fw-bold mb-0"><i class="fas fa-bolt me-2 text-primary"></i>Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <a href="{{ url_for('opd.checkin') }}" class="btn btn-outline-success w-100 btn-sm py-2">
+                            <i class="fas fa-ticket-alt d-block mb-1"></i>OPD Check-in
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('blood_bank.new_request') }}" class="btn btn-outline-danger w-100 btn-sm py-2">
+                            <i class="fas fa-tint d-block mb-1"></i>Blood Request
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('ambulance.new_dispatch') }}" class="btn btn-outline-warning w-100 btn-sm py-2">
+                            <i class="fas fa-ambulance d-block mb-1"></i>Dispatch Amb.
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('wards.admit') }}" class="btn btn-outline-info w-100 btn-sm py-2">
+                            <i class="fas fa-bed d-block mb-1"></i>Admit Patient
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('billing.new') }}" class="btn btn-outline-primary w-100 btn-sm py-2">
+                            <i class="fas fa-file-invoice d-block mb-1"></i>New Bill
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('referrals.new') }}" class="btn btn-outline-secondary w-100 btn-sm py-2">
+                            <i class="fas fa-share-alt d-block mb-1"></i>Referral
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="col-lg-4">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white border-bottom-0 pt-3">
@@ -155,59 +288,9 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row g-3">
-    <div class="col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0"><i class="fas fa-calendar-day me-2 text-primary"></i>Today's Appointments</h6>
-                <a href="{{ url_for('appointments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 small">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Time</th>
-                                <th>Patient</th>
-                                <th>Doctor</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for apt in appointments_today %}
-                            <tr>
-                                <td><span class="time-slot">{{ apt.appointment_time }}</span></td>
-                                <td>
-                                    <a href="{{ url_for('patients.view', id=apt.patient.id) }}" class="text-decoration-none fw-semibold">
-                                        {{ apt.patient.full_name }}
-                                    </a>
-                                </td>
-                                <td class="text-muted">{{ apt.doctor.full_name }}</td>
-                                <td>
-                                    {% if apt.status == 'scheduled' %}
-                                        <span class="badge bg-warning text-dark">Scheduled</span>
-                                    {% elif apt.status == 'completed' %}
-                                        <span class="badge bg-success">Completed</span>
-                                    {% elif apt.status == 'cancelled' %}
-                                        <span class="badge bg-danger">Cancelled</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ apt.status }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="4" class="text-center text-muted py-3">No appointments today</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-5">
-        <div class="card shadow-sm">
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0"><i class="fas fa-user-plus me-2 text-primary"></i>Recent Patients</h6>
                 <a href="{{ url_for('patients.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
@@ -230,10 +313,60 @@
                         </div>
                     </li>
                     {% else %}
-                    <li class="list-group-item text-center text-muted py-3 small">No patients registered yet</li>
+                    <li class="list-group-item text-center text-muted py-3 small">No patients yet</li>
                     {% endfor %}
                 </ul>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 5: Today's Appointments Full Table -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="fas fa-calendar-day me-2 text-primary"></i>Today's Appointments</h6>
+        <a href="{{ url_for('appointments.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th>Time</th>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apt in appointments_today %}
+                    <tr>
+                        <td><span class="time-slot">{{ apt.appointment_time }}</span></td>
+                        <td>
+                            <a href="{{ url_for('patients.view', id=apt.patient.id) }}" class="text-decoration-none fw-semibold">
+                                {{ apt.patient.full_name }}
+                            </a>
+                        </td>
+                        <td class="text-muted">{{ apt.doctor.full_name }}</td>
+                        <td>{{ apt.reason[:30] if apt.reason else '-' }}</td>
+                        <td>
+                            {% if apt.status == 'scheduled' %}
+                                <span class="badge bg-warning text-dark">Scheduled</span>
+                            {% elif apt.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif apt.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ apt.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">No appointments today</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}New Purchase Order - MediCare HMS{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('purchase_orders.index') }}">Purchase Orders</a></li>
+<li class="breadcrumb-item active">New PO</li>
+{% endblock %}
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="fw-bold mb-0"><i class="fas fa-file-alt me-2 text-primary"></i>Create Purchase Order</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="po-form">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">Supplier <span class="text-danger">*</span></label>
+                    <select name="supplier_id" class="form-select" required>
+                        <option value="">Select Supplier</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.id }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Expected Delivery Date</label>
+                    <input type="date" name="expected_date" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Notes</label>
+                    <input type="text" name="notes" class="form-control">
+                </div>
+            </div>
+
+            <h6 class="fw-semibold mb-3 border-bottom pb-2">Order Items</h6>
+            <div id="items-container">
+                <div class="row g-2 mb-2 item-row">
+                    <div class="col-md-5">
+                        <select name="medicine_id[]" class="form-select">
+                            <option value="">Select Medicine</option>
+                            {% for m in medicines %}
+                            <option value="{{ m.id }}">{{ m.name }} ({{ m.unit }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="quantity[]" class="form-control" placeholder="Qty" min="1">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="unit_price[]" class="form-control" placeholder="Unit Price" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control total-field bg-light" placeholder="Total" readonly>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-row"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="add-item" class="btn btn-outline-primary btn-sm mt-2">
+                <i class="fas fa-plus me-1"></i>Add Item
+            </button>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Create Purchase Order</button>
+                <a href="{{ url_for('purchase_orders.index') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const medicinesHtml = `{% for m in medicines %}<option value="{{ m.id }}">{{ m.name }} ({{ m.unit }})</option>{% endfor %}`;
+
+document.getElementById('add-item').addEventListener('click', function() {
+    const container = document.getElementById('items-container');
+    const row = container.querySelector('.item-row').cloneNode(true);
+    row.querySelectorAll('input').forEach(i => i.value = '');
+    container.appendChild(row);
+});
+
+document.getElementById('items-container').addEventListener('click', function(e) {
+    if (e.target.closest('.remove-row')) {
+        const rows = document.querySelectorAll('.item-row');
+        if (rows.length > 1) e.target.closest('.item-row').remove();
+    }
+});
+
+document.getElementById('items-container').addEventListener('input', function(e) {
+    const row = e.target.closest('.item-row');
+    if (!row) return;
+    const qty = parseFloat(row.querySelector('[name="quantity[]"]').value) || 0;
+    const price = parseFloat(row.querySelector('[name="unit_price[]"]').value) || 0;
+    row.querySelector('.total-field').value = (qty * price).toFixed(2);
+});
+</script>
+{% endblock %}
