@@ -228,7 +228,16 @@ body {
 /* ================================================================
    TOP NAVBAR
 ================================================================ */
-#page-content-wrapper { min-width: 0; overflow-x: hidden; }
+#page-content-wrapper {
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 0;         /* forces flex child to shrink/grow properly */
+  overflow-x: hidden;
+}
+#wrapper {
+  min-height: 100vh;
+  width: 100%;
+}
 
 .topnav {
   height: var(--navbar-h);
