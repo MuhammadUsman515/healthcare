@@ -57,7 +57,11 @@
             <span class="small text-success">Online — ready to help</span>
           </div>
         </div>
-        <div class="ms-auto d-flex gap-2">
+        <div class="ms-auto d-flex gap-2 align-items-center">
+          <div id="voice-status" class="d-none d-md-flex align-items-center gap-1 small text-muted">
+            <i class="fas fa-microphone-slash" id="voice-status-icon" style="font-size:.75rem"></i>
+            <span id="voice-status-text">Voice ready</span>
+          </div>
           <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()" title="Clear chat">
             <i class="fas fa-trash-alt"></i>
           </button>
@@ -79,6 +83,7 @@
               <span>Aaj ka hospital stats</span>
             </div>
             <div class="mt-2 small text-muted">💡 Try: <em>"Bob Fisher ka data"</em> ya <em>"today's stats"</em></div>
+            <div class="mt-1 small" style="color:#7c3aed"><i class="fas fa-microphone me-1"></i>Purple mic button dabao ya <kbd style="font-size:.65rem">Ctrl+Space</kbd> bold ke liye voice use karen</div>
           </div>
         </div>
       </div>
@@ -90,20 +95,59 @@
         <button class="quick-reply-btn" onclick="sendQuick('help')">❓ Help</button>
       </div>
 
+      <!-- Voice waveform (shown while listening) -->
+      <div id="voice-bar" style="display:none;flex-shrink:0;background:linear-gradient(135deg,#1a0b35,#0f172a);padding:16px 20px">
+        <div class="d-flex align-items-center gap-3">
+          <div class="voice-pulse-ring">
+            <i class="fas fa-microphone" style="color:#fff;font-size:1.1rem"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="voice-waves" id="voice-waves">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div id="interim-text" class="small mt-1" style="color:rgba(255,255,255,.6);min-height:18px;font-style:italic"></div>
+          </div>
+          <button onclick="stopVoice()" style="background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;cursor:pointer">
+            <i class="fas fa-stop"></i>
+          </button>
+        </div>
+      </div>
+
       <!-- Input -->
       <div class="p-3 border-top" style="flex-shrink:0;background:#fff">
         <div class="d-flex gap-2 align-items-end">
-          <div class="flex-grow-1">
+          <!-- Language selector -->
+          <select id="lang-select" class="form-select form-select-sm" style="width:auto;flex-shrink:0;border-radius:10px;font-size:.75rem">
+            <option value="en-US">🇺🇸 EN</option>
+            <option value="ur-PK">🇵🇰 UR</option>
+            <option value="en-GB">🇬🇧 EN-GB</option>
+          </select>
+          <div class="flex-grow-1" style="position:relative">
             <textarea id="chat-input" class="form-control" rows="1"
               placeholder="Patient ka naam type karen, ya koi sawaal pochen…"
               style="resize:none;border-radius:12px;padding:10px 14px;line-height:1.5;max-height:100px"></textarea>
           </div>
+          <!-- Mic button -->
+          <button id="mic-btn" class="btn" onclick="toggleVoice()"
+            style="border-radius:12px;width:46px;height:46px;flex-shrink:0;padding:0;background:#f1f5f9;border:2px solid #e2e8f0;color:#7c3aed;transition:all .2s"
+            title="Voice input (click to speak)">
+            <i class="fas fa-microphone" id="mic-icon"></i>
+          </button>
           <button id="send-btn" class="btn btn-primary" style="border-radius:12px;width:46px;height:46px;flex-shrink:0;padding:0" onclick="sendMessage()">
             <i class="fas fa-paper-plane"></i>
           </button>
         </div>
-        <div class="small text-muted mt-1" style="font-size:.72rem">
-          Enter to send · Shift+Enter for new line · Urdu/Roman Urdu & English dono chalte hain
+        <div class="d-flex align-items-center justify-content-between mt-1">
+          <div class="small text-muted" style="font-size:.72rem">
+            Enter to send · <kbd style="font-size:.65rem">Shift+Enter</kbd> new line
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted d-flex align-items-center gap-1" style="font-size:.72rem;cursor:pointer">
+              <input type="checkbox" id="tts-toggle" checked style="accent-color:#7c3aed">
+              🔊 Read aloud
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -246,14 +290,211 @@
   .msg-bubble { max-width: 92%; }
   .bot-info-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Voice Assistant ─────────────────────────────── */
+.voice-pulse-ring {
+  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg,#7c3aed,#a855f7);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  animation: voice-pulse 1.2s infinite;
+  box-shadow: 0 0 0 0 rgba(124,58,237,.6);
+}
+@keyframes voice-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(124,58,237,.6); }
+  70%  { box-shadow: 0 0 0 14px rgba(124,58,237,0); }
+  100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+}
+.voice-waves {
+  display: flex; align-items: center; gap: 3px; height: 28px;
+}
+.voice-waves span {
+  display: inline-block; width: 3px; border-radius: 3px;
+  background: linear-gradient(to top, #7c3aed, #a855f7);
+  animation: wave-bar .8s infinite ease-in-out;
+  min-height: 4px;
+}
+.voice-waves span:nth-child(1)  { animation-delay: 0s;    }
+.voice-waves span:nth-child(2)  { animation-delay: .08s;  }
+.voice-waves span:nth-child(3)  { animation-delay: .16s;  }
+.voice-waves span:nth-child(4)  { animation-delay: .24s;  }
+.voice-waves span:nth-child(5)  { animation-delay: .32s;  }
+.voice-waves span:nth-child(6)  { animation-delay: .40s;  }
+.voice-waves span:nth-child(7)  { animation-delay: .48s;  }
+.voice-waves span:nth-child(8)  { animation-delay: .56s;  }
+.voice-waves span:nth-child(9)  { animation-delay: .64s;  }
+.voice-waves span:nth-child(10) { animation-delay: .72s;  }
+@keyframes wave-bar {
+  0%, 100% { height: 6px; }
+  50%       { height: 24px; }
+}
+.voice-waves.idle span { animation: none !important; height: 4px; opacity: .4; }
+
+#mic-btn.listening {
+  background: linear-gradient(135deg,#7c3aed,#a855f7) !important;
+  border-color: #7c3aed !important;
+  color: #fff !important;
+  animation: mic-glow 1.2s infinite;
+}
+@keyframes mic-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(124,58,237,0); }
+}
+
+/* TTS speaking indicator on bot avatar */
+.bot-avatar.speaking {
+  animation: speaker-pulse 0.8s infinite;
+  box-shadow: 0 0 0 4px rgba(124,58,237,.3);
+}
+@keyframes speaker-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(124,58,237,.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(124,58,237,.1); }
+}
 </style>
 
 {% block scripts %}
 <script>
 const chatMessages = document.getElementById('chat-messages');
-const chatInput = document.getElementById('chat-input');
-const quickBar = document.getElementById('quick-bar');
-const userName = "{{ current_user.username[0]|upper }}";
+const chatInput    = document.getElementById('chat-input');
+const quickBar     = document.getElementById('quick-bar');
+const voiceBar     = document.getElementById('voice-bar');
+const interimEl    = document.getElementById('interim-text');
+const micBtn       = document.getElementById('mic-btn');
+const micIcon      = document.getElementById('mic-icon');
+const langSelect   = document.getElementById('lang-select');
+const ttsToggle    = document.getElementById('tts-toggle');
+const userName     = "{{ current_user.username[0]|upper }}";
+
+// ── Detect browser support ───────────────────────────────────────────────────
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+let ttsActive   = false;
+let currentUtterance = null;
+
+if (!SpeechRec) {
+  micBtn.disabled = true;
+  micBtn.title = 'Voice not supported in this browser. Use Chrome or Edge.';
+  micBtn.style.opacity = '.4';
+}
+
+// ── TTS helper ───────────────────────────────────────────────────────────────
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function speak(text) {
+  if (!ttsToggle.checked || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = stripHtml(text).trim().slice(0, 500); // limit length
+  if (!clean) return;
+
+  currentUtterance = new SpeechSynthesisUtterance(clean);
+  currentUtterance.lang = langSelect.value;
+  currentUtterance.rate = 1.0;
+  currentUtterance.pitch = 1.0;
+
+  // Choose a nicer voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.lang.startsWith(langSelect.value.split('-')[0]) && v.localService
+  ) || voices.find(v => v.lang.startsWith('en'));
+  if (preferred) currentUtterance.voice = preferred;
+
+  // Pulse bot avatar while speaking
+  currentUtterance.onstart = () => {
+    ttsActive = true;
+    document.querySelectorAll('.bot-avatar').forEach(a => a.classList.add('speaking'));
+  };
+  currentUtterance.onend = currentUtterance.onerror = () => {
+    ttsActive = false;
+    document.querySelectorAll('.bot-avatar').forEach(a => a.classList.remove('speaking'));
+  };
+  window.speechSynthesis.speak(currentUtterance);
+}
+
+function stopSpeaking() {
+  window.speechSynthesis?.cancel();
+  ttsActive = false;
+  document.querySelectorAll('.bot-avatar').forEach(a => a.classList.remove('speaking'));
+}
+
+// ── STT helper ───────────────────────────────────────────────────────────────
+function startVoice() {
+  if (!SpeechRec) return;
+  stopSpeaking(); // stop any TTS before listening
+
+  recognition = new SpeechRec();
+  recognition.lang = langSelect.value;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    isListening = true;
+    micBtn.classList.add('listening');
+    micIcon.className = 'fas fa-stop';
+    voiceBar.style.display = 'block';
+    interimEl.textContent = 'Listening…';
+    document.getElementById('voice-waves').classList.remove('idle');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    interimEl.textContent = interim || final;
+    if (final) {
+      chatInput.value = final.trim();
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+    }
+  };
+
+  recognition.onerror = (e) => {
+    const msgs = {
+      'not-allowed': '🎤 Microphone permission denied. Please allow mic access in browser settings.',
+      'no-speech':   '🔇 No speech detected. Please try again.',
+      'network':     '🌐 Network error during speech recognition.',
+      'aborted':     '',
+    };
+    stopVoice(false);
+    if (msgs[e.error]) {
+      appendMsg(`<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${msgs[e.error]}</span>`);
+    }
+  };
+
+  recognition.onend = () => {
+    stopVoice(false); // cleanup UI
+    if (chatInput.value.trim()) {
+      setTimeout(() => sendMessage(), 300); // short delay for natural feel
+    }
+  };
+
+  recognition.start();
+}
+
+function stopVoice(abort = true) {
+  isListening = false;
+  micBtn.classList.remove('listening');
+  micIcon.className = 'fas fa-microphone';
+  voiceBar.style.display = 'none';
+  interimEl.textContent = '';
+  document.getElementById('voice-waves').classList.add('idle');
+  if (abort && recognition) {
+    try { recognition.abort(); } catch(e) {}
+  }
+  recognition = null;
+}
+
+function toggleVoice() {
+  if (isListening) stopVoice(true);
+  else startVoice();
+}
 
 function scrollBottom() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -323,6 +564,8 @@ async function sendMessage() {
     removeTyping();
     appendMsg(data.html);
     setQuickReplies(data.quick || []);
+    // 🔊 Speak the response
+    speak(data.html);
   } catch(e) {
     removeTyping();
     appendMsg('<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Connection error. Please try again.</span>');
@@ -343,11 +586,34 @@ function setMsg(text) {
 }
 
 function clearChat() {
+  stopSpeaking();
   chatMessages.innerHTML = '';
   quickBar.innerHTML = '';
   appendMsg(`<div class="fw-semibold mb-1">Chat cleared. Dobara poochein!</div>
     <div class="small text-muted">Type a patient name or command to start.</div>`);
 }
+
+// Pre-load voices for TTS (browsers need this)
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+// Stop TTS when leaving page
+window.addEventListener('beforeunload', stopSpeaking);
+
+// Space bar held down = voice (like walkie-talkie)
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && e.ctrlKey && !isListening && document.activeElement !== chatInput) {
+    e.preventDefault();
+    startVoice();
+  }
+});
+document.addEventListener('keyup', (e) => {
+  if (e.code === 'Space' && e.ctrlKey && isListening) {
+    if (recognition) recognition.stop();
+  }
+});
 
 // Auto-resize textarea
 chatInput.addEventListener('input', function() {
