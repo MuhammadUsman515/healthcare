@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Add Insurance Provider{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('insurance.providers') }}">Providers</a></li>
+<li class="breadcrumb-item active">New</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-shield-alt me-2 text-info"></i>Add Insurance Provider</div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Provider Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. State Life Insurance">
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Code</label>
+              <input type="text" name="code" class="form-control" placeholder="e.g. SLI01">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Claim Process Days</label>
+              <input type="number" name="claim_process_days" class="form-control" value="30" min="1">
+            </div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Contact Person</label>
+              <input type="text" name="contact_person" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Phone</label>
+              <input type="text" name="phone" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" name="email" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Address</label>
+            <textarea name="address" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-info text-white">Save Provider</button>
+            <a href="{{ url_for('insurance.providers') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

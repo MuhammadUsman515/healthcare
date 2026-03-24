@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Staff Attendance{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Attendance</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-user-clock me-2 text-primary"></i>Staff Attendance</h4>
+    <p class="text-muted small mb-0">Mark daily attendance for all staff</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('hr.attendance_report') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-chart-bar me-2"></i>Monthly Report
+    </a>
+    <a href="{{ url_for('hr.leaves') }}" class="btn btn-outline-primary">
+      <i class="fas fa-calendar-minus me-2"></i>Leave Management
+    </a>
+  </div>
+</div>
+
+<!-- Date Selector -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-0">Date</label>
+      </div>
+      <div class="col-md-3">
+        <input type="date" name="date" class="form-control form-control-sm" value="{{ sel_date }}" max="{{ today.isoformat() }}">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Load</button>
+      </div>
+      <div class="col-auto ms-auto">
+        <span class="badge bg-success me-1">Present: {{ present }}</span>
+        <span class="badge bg-danger me-1">Absent: {{ absent }}</span>
+        <span class="badge bg-info me-1">On Leave: {{ on_leave }}</span>
+        <span class="badge bg-secondary">Total: {{ staff_list|length }}</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<form method="POST" action="{{ url_for('hr.save_attendance') }}">
+  <input type="hidden" name="att_date" value="{{ sel_date }}">
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Role / Shift</th>
+              <th>Status</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for staff in staff_list %}
+            {% set rec = existing.get(staff.id) %}
+            <tr>
+              <input type="hidden" name="staff_id[]" value="{{ staff.id }}">
+              <td>
+                <div class="fw-semibold">{{ staff.full_name }}</div>
+                <div class="text-muted small">{{ staff.employee_id }}</div>
+              </td>
+              <td class="small text-muted">
+                {{ staff.role|replace('_',' ')|title }}
+                <span class="badge bg-light text-dark border ms-1">{{ staff.shift|title }}</span>
+              </td>
+              <td>
+                <select name="status[]" class="form-select form-select-sm status-select"
+                        style="width:130px"
+                        onchange="updateRow(this)">
+                  <option value="present"   {% if rec and rec.status=='present'   %}selected{% elif not rec %}selected{% endif %}>Present</option>
+                  <option value="absent"    {% if rec and rec.status=='absent'    %}selected{% endif %}>Absent</option>
+                  <option value="late"      {% if rec and rec.status=='late'      %}selected{% endif %}>Late</option>
+                  <option value="half_day"  {% if rec and rec.status=='half_day'  %}selected{% endif %}>Half Day</option>
+                  <option value="on_leave"  {% if rec and rec.status=='on_leave'  %}selected{% endif %}>On Leave</option>
+                </select>
+              </td>
+              <td><input type="time" name="check_in[]" class="form-control form-control-sm" style="width:110px" value="{{ rec.check_in if rec and rec.check_in else '' }}"></td>
+              <td><input type="time" name="check_out[]" class="form-control form-control-sm" style="width:110px" value="{{ rec.check_out if rec and rec.check_out else '' }}"></td>
+              <td><input type="text" name="notes[]" class="form-control form-control-sm" value="{{ rec.notes if rec and rec.notes else '' }}" placeholder="..."></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">No active staff found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if staff_list %}
+  <div class="mt-3 text-end">
+    <button type="submit" class="btn btn-success px-4">
+      <i class="fas fa-save me-2"></i>Save Attendance
+    </button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateRow(sel) {
+  const row = sel.closest('tr');
+  row.classList.remove('table-success','table-danger','table-warning','table-info');
+  const map = {present:'table-success', absent:'table-danger', late:'table-warning', half_day:'table-warning', on_leave:'table-info'};
+  if (map[sel.value]) row.classList.add(map[sel.value]);
+}
+document.querySelectorAll('.status-select').forEach(updateRow);
+</script>
+{% endblock %}

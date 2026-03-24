@@ -1184,3 +1184,175 @@ class PharmacySaleItem(db.Model):
 
     def __repr__(self):
         return f'<PharmacySaleItem {self.medicine_name}>'
+
+
+# ─── STAFF ATTENDANCE & LEAVE ─────────────────────────────────────────────────
+
+class StaffAttendance(db.Model):
+    """Daily attendance record for each staff member."""
+    __tablename__ = 'staff_attendance'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    check_in = db.Column(db.String(10))          # HH:MM
+    check_out = db.Column(db.String(10))         # HH:MM
+    status = db.Column(db.String(20), default='present')  # present, absent, late, half_day, on_leave
+    notes = db.Column(db.Text)
+    marked_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    staff = db.relationship('Staff', backref='attendance_records')
+
+    def __repr__(self):
+        return f'<Attendance {self.staff_id} {self.date}>'
+
+
+class StaffLeave(db.Model):
+    """Leave application and approval for staff."""
+    __tablename__ = 'staff_leaves'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    leave_type = db.Column(db.String(30), nullable=False)  # sick, annual, casual, emergency, maternity, unpaid
+    from_date = db.Column(db.Date, nullable=False)
+    to_date = db.Column(db.Date, nullable=False)
+    days = db.Column(db.Float, default=1)
+    reason = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, cancelled
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime)
+    rejection_reason = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    staff = db.relationship('Staff', backref='leaves')
+    approver = db.relationship('User', backref='approved_leaves', foreign_keys=[approved_by])
+
+    def __repr__(self):
+        return f'<Leave {self.staff_id} {self.leave_type}>'
+
+
+# ─── EXPENSE TRACKER ─────────────────────────────────────────────────────────
+
+class ExpenseCategory(db.Model):
+    """Categories for hospital/clinic expenses."""
+    __tablename__ = 'expense_categories'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+
+    expenses = db.relationship('Expense', backref='category')
+
+    def __repr__(self):
+        return f'<ExpenseCategory {self.name}>'
+
+
+class Expense(db.Model):
+    """Operational expense record."""
+    __tablename__ = 'expenses'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    expense_number = db.Column(db.String(20))
+    category_id = db.Column(db.Integer, db.ForeignKey('expense_categories.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    expense_date = db.Column(db.Date, nullable=False)
+    payment_method = db.Column(db.String(50), default='cash')  # cash, bank, cheque, online
+    vendor = db.Column(db.String(200))
+    invoice_number = db.Column(db.String(100))
+    notes = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    creator = db.relationship('User', backref='expenses', foreign_keys=[created_by])
+
+    def __repr__(self):
+        return f'<Expense {self.title} {self.amount}>'
+
+
+# ─── MEDICAL CERTIFICATES ─────────────────────────────────────────────────────
+
+class MedicalCertificate(db.Model):
+    """Medical certificates issued by the hospital/clinic."""
+    __tablename__ = 'medical_certificates'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    cert_number = db.Column(db.String(20), unique=True, nullable=False)
+    cert_type = db.Column(db.String(30), nullable=False)  # fitness, sick_leave, birth, death, vaccination, disability
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
+    # Common fields
+    patient_name = db.Column(db.String(200))     # For non-registered patients
+    patient_age = db.Column(db.String(20))
+    patient_gender = db.Column(db.String(10))
+    issue_date = db.Column(db.Date, default=datetime.utcnow)
+    valid_until = db.Column(db.Date)             # Null = no expiry
+    # Clinical details
+    diagnosis = db.Column(db.Text)
+    purpose = db.Column(db.Text)                 # Purpose / to whom issued
+    rest_days = db.Column(db.Integer)            # For sick leave certificates
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(20), default='active')  # active, cancelled
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    patient = db.relationship('Patient', backref='certificates')
+    doctor = db.relationship('Doctor', backref='certificates')
+
+    def __repr__(self):
+        return f'<MedicalCertificate {self.cert_number} {self.cert_type}>'
+
+
+# ─── INSURANCE / TPA ─────────────────────────────────────────────────────────
+
+class InsuranceProvider(db.Model):
+    """Insurance companies / TPAs empanelled with the hospital."""
+    __tablename__ = 'insurance_providers'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    name = db.Column(db.String(200), nullable=False)
+    code = db.Column(db.String(50))
+    contact_person = db.Column(db.String(100))
+    phone = db.Column(db.String(30))
+    email = db.Column(db.String(120))
+    address = db.Column(db.Text)
+    claim_process_days = db.Column(db.Integer, default=30)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    claims = db.relationship('InsuranceClaim', backref='provider')
+
+    def __repr__(self):
+        return f'<InsuranceProvider {self.name}>'
+
+
+class InsuranceClaim(db.Model):
+    """Insurance / TPA claim linked to a patient bill."""
+    __tablename__ = 'insurance_claims'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    claim_number = db.Column(db.String(30), unique=True, nullable=False)
+    bill_id = db.Column(db.Integer, db.ForeignKey('bills.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    provider_id = db.Column(db.Integer, db.ForeignKey('insurance_providers.id'), nullable=False)
+    policy_number = db.Column(db.String(100))
+    policy_holder_name = db.Column(db.String(200))
+    claim_amount = db.Column(db.Float, default=0.0)
+    approved_amount = db.Column(db.Float, default=0.0)
+    status = db.Column(db.String(30), default='pending')  # pending, submitted, under_review, approved, partial, rejected, settled
+    submission_date = db.Column(db.Date)
+    settlement_date = db.Column(db.Date)
+    rejection_reason = db.Column(db.Text)
+    notes = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    patient = db.relationship('Patient', backref='insurance_claims')
+    bill = db.relationship('Bill', backref='insurance_claims')
+
+    def __repr__(self):
+        return f'<InsuranceClaim {self.claim_number}>'
+

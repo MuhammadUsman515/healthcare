@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Expense Categories{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('expenses.index') }}">Expenses</a></li>
+<li class="breadcrumb-item active">Categories</li>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Add Category</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('expenses.new_category') }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Utilities, Salaries, Maintenance..." required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Description</label>
+            <input type="text" name="description" class="form-control" placeholder="Optional">
+          </div>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">All Categories</div>
+      <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Name</th><th>Description</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for cat in categories %}
+            <tr>
+              <td class="fw-semibold">{{ cat.name }}</td>
+              <td class="text-muted small">{{ cat.description or '-' }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('expenses.delete_category', id=cat.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?')">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center py-3 text-muted">No categories yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

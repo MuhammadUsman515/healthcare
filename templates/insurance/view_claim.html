@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Claim {{ claim.claim_number }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('insurance.claims') }}">Claims</a></li>
+<li class="breadcrumb-item active">{{ claim.claim_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-file-medical me-2 text-info"></i>{{ claim.claim_number }}</h4>
+    <p class="text-muted small mb-0">
+      <span class="badge bg-{% if claim.status=='settled' or claim.status=='approved' %}success{% elif claim.status=='rejected' %}danger{% elif claim.status=='pending' %}warning text-dark{% else %}secondary{% endif %}">
+        {{ claim.status|replace('_',' ')|title }}
+      </span>
+    </p>
+  </div>
+  <a href="{{ url_for('insurance.claims') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Claim Details</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Claim #</dt><dd class="col-7"><code>{{ claim.claim_number }}</code></dd>
+          <dt class="col-5 text-muted">Patient</dt>
+          <dd class="col-7 fw-semibold">
+            <a href="{{ url_for('patients.view', id=claim.patient.id) }}" class="text-decoration-none">
+              {{ claim.patient.first_name }} {{ claim.patient.last_name }}
+            </a>
+          </dd>
+          <dt class="col-5 text-muted">Provider</dt><dd class="col-7">{{ claim.provider.name }}</dd>
+          <dt class="col-5 text-muted">Policy #</dt><dd class="col-7">{{ claim.policy_number or '-' }}</dd>
+          <dt class="col-5 text-muted">Policy Holder</dt><dd class="col-7">{{ claim.policy_holder_name or '-' }}</dd>
+          <dt class="col-5 text-muted">Linked Bill</dt>
+          <dd class="col-7">
+            {% if claim.bill %}
+              <a href="{{ url_for('billing.view', id=claim.bill.id) }}">{{ claim.bill.bill_number }}</a>
+            {% else %}-{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Submitted</dt><dd class="col-7">{{ claim.submission_date.strftime('%d %b %Y') if claim.submission_date else '-' }}</dd>
+          <dt class="col-5 text-muted">Settled</dt><dd class="col-7">{{ claim.settlement_date.strftime('%d %b %Y') if claim.settlement_date else '-' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold">Financial Summary</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-6 text-muted">Claimed Amount</dt><dd class="col-6 fw-bold fs-6">Rs. {{ "{:,.0f}".format(claim.claim_amount) }}</dd>
+          <dt class="col-6 text-muted">Approved Amount</dt><dd class="col-6 fw-bold text-success fs-6">Rs. {{ "{:,.0f}".format(claim.approved_amount) }}</dd>
+        </dl>
+        {% if claim.rejection_reason %}
+        <div class="alert alert-danger mt-2 small py-2">{{ claim.rejection_reason }}</div>
+        {% endif %}
+        {% if claim.notes %}
+        <p class="text-muted small mt-2 mb-0">{{ claim.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Update Status -->
+    {% if claim.status not in ['settled', 'rejected', 'cancelled'] %}
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Update Status</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('insurance.update_claim', id=claim.id) }}">
+          <div class="mb-2">
+            <select name="status" class="form-select form-select-sm" id="statusSel" onchange="toggleSettleFields()">
+              {% for s in ['submitted','under_review','approved','partial','rejected','settled'] %}
+              <option value="{{ s }}" {% if claim.status==s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div id="settleFields" style="display:none;">
+            <div class="mb-2">
+              <input type="number" name="approved_amount" class="form-control form-control-sm" placeholder="Approved Amount (Rs.)">
+            </div>
+            <div class="mb-2">
+              <input type="date" name="settlement_date" class="form-control form-control-sm">
+            </div>
+          </div>
+          <div id="rejectField" style="display:none;">
+            <div class="mb-2">
+              <textarea name="rejection_reason" class="form-control form-control-sm" rows="2" placeholder="Reason for rejection..."></textarea>
+            </div>
+          </div>
+          <div class="mb-2">
+            <textarea name="notes" class="form-control form-control-sm" rows="1" placeholder="Notes..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-info text-white btn-sm w-100">Update</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleSettleFields() {
+  const s = document.getElementById('statusSel').value;
+  document.getElementById('settleFields').style.display = ['approved','partial','settled'].includes(s) ? '' : 'none';
+  document.getElementById('rejectField').style.display = s === 'rejected' ? '' : 'none';
+}
+toggleSettleFields();
+</script>
+{% endblock %}

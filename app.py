@@ -27,6 +27,10 @@ from routes.platform_admin import platform_admin_bp
 from routes.onboarding import onboarding_bp
 from routes.notifications import notifications_bp
 from routes.billing_saas import billing_saas_bp
+from routes.hr import hr_bp
+from routes.expenses import expenses_bp
+from routes.certificates import certificates_bp
+from routes.insurance import insurance_bp
 
 
 def create_app():
@@ -123,6 +127,10 @@ def create_app():
     app.register_blueprint(onboarding_bp)
     app.register_blueprint(notifications_bp)
     app.register_blueprint(billing_saas_bp)
+    app.register_blueprint(hr_bp)
+    app.register_blueprint(expenses_bp)
+    app.register_blueprint(certificates_bp)
+    app.register_blueprint(insurance_bp)
 
     return app
 

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}New Insurance Claim{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('insurance.claims') }}">Claims</a></li>
+<li class="breadcrumb-item active">New</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-file-medical me-2 text-info"></i>Submit Insurance Claim</div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Patient <span class="text-danger">*</span></label>
+              <select name="patient_id" class="form-select" required onchange="loadBills(this)">
+                <option value="">-- Select Patient --</option>
+                {% for p in patients %}
+                <option value="{{ p.id }}" {% if prefill_patient_id and p.id|string == prefill_patient_id %}selected{% endif %}>
+                  {{ p.first_name }} {{ p.last_name }} ({{ p.patient_id }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Insurance Provider <span class="text-danger">*</span></label>
+              <select name="provider_id" class="form-select" required>
+                <option value="">-- Select --</option>
+                {% for p in providers %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Linked Bill (optional)</label>
+            <select name="bill_id" id="billSelect" class="form-select">
+              <option value="">-- No Bill --</option>
+              {% for b in bills %}
+              <option value="{{ b.id }}" {% if prefill_bill_id and b.id|string == prefill_bill_id %}selected{% endif %}>
+                {{ b.bill_number }} — Rs. {{ "{:,.0f}".format(b.total_amount) }} ({{ b.payment_status }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Policy Number</label>
+              <input type="text" name="policy_number" class="form-control" placeholder="Insurance policy #">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Policy Holder Name</label>
+              <input type="text" name="policy_holder_name" class="form-control" placeholder="Name on policy">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Claim Amount (Rs.) <span class="text-danger">*</span></label>
+              <input type="number" name="claim_amount" class="form-control" min="0" step="1" required placeholder="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Submission Date</label>
+              <input type="date" name="submission_date" class="form-control" value="{{ today.isoformat() }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-info text-white">Submit Claim</button>
+            <a href="{{ url_for('insurance.claims') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadBills(sel) {
+  const pid = sel.value;
+  if (!pid) return;
+  fetch(`/insurance/api/patient-bills/${pid}`)
+    .then(r => r.json())
+    .then(bills => {
+      const s = document.getElementById('billSelect');
+      s.innerHTML = '<option value="">-- No Bill --</option>';
+      bills.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.text = `${b.bill_number} — Rs. ${b.total_amount.toLocaleString()} (${b.status})`;
+        s.appendChild(opt);
+      });
+    });
+}
+</script>
+{% endblock %}

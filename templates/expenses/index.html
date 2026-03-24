@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Expenses{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item active">Expenses</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-wallet me-2 text-danger"></i>Expense Tracker</h4>
+    <p class="text-muted small mb-0">Total: <strong class="text-danger">Rs. {{ "{:,.0f}".format(total) }}</strong> (selected period)</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('expenses.categories') }}" class="btn btn-outline-secondary btn-sm">Categories</a>
+    <a href="{{ url_for('expenses.new') }}" class="btn btn-danger"><i class="fas fa-plus me-2"></i>Add Expense</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">From</label>
+        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">To</label>
+        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Category</label>
+        <select name="category" class="form-select form-select-sm">
+          <option value="">All Categories</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {% if cat_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for cat_name, amount in cat_totals.items() %}
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm p-3 text-center">
+      <div class="text-muted small">{{ cat_name }}</div>
+      <div class="fw-bold text-danger">Rs. {{ "{:,.0f}".format(amount) }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Date</th><th>Title</th><th>Category</th><th>Vendor</th><th>Method</th><th>Amount</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td class="small text-muted">{{ e.expense_date.strftime('%d %b %Y') }}</td>
+          <td>
+            <div class="fw-semibold">{{ e.title }}</div>
+            {% if e.invoice_number %}<div class="text-muted small">Invoice: {{ e.invoice_number }}</div>{% endif %}
+          </td>
+          <td><span class="badge bg-secondary">{{ e.category.name if e.category else 'Uncategorized' }}</span></td>
+          <td class="small text-muted">{{ e.vendor or '-' }}</td>
+          <td><span class="badge bg-light text-dark border">{{ e.payment_method|title }}</span></td>
+          <td class="fw-bold text-danger">Rs. {{ "{:,.0f}".format(e.amount) }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('expenses.delete', id=e.id) }}" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this expense?')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center py-5 text-muted">No expenses in this period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

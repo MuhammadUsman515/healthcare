@@ -196,6 +196,37 @@
                 </li>
                 {% endif %}
 
+                <!-- HR, FINANCE & ADMIN -->
+                <div class="sidebar-section-label">HR & Finance</div>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'hr.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('hr.attendance') }}">
+                        <i class="fas fa-user-clock me-2"></i><span>Attendance</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'expenses.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('expenses.index') }}">
+                        <i class="fas fa-wallet me-2"></i><span>Expenses</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'insurance.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('insurance.claims') }}">
+                        <i class="fas fa-shield-alt me-2"></i><span>Insurance / TPA</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'certificates.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('certificates.index') }}">
+                        <i class="fas fa-certificate me-2"></i><span>Certificates</span>
+                    </a>
+                </li>
+
                 <!-- ANALYTICS & ADMIN -->
                 <div class="sidebar-section-label">Analytics & Admin</div>
 

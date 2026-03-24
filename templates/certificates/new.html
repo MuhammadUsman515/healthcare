@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Issue Certificate{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('certificates.index') }}">Certificates</a></li>
+<li class="breadcrumb-item active">Issue</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white">
+        <h5 class="fw-bold mb-0"><i class="fas fa-certificate me-2 text-warning"></i>Issue Medical Certificate</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Certificate Type <span class="text-danger">*</span></label>
+              <select name="cert_type" id="certType" class="form-select" required onchange="toggleFields()">
+                <option value="fitness"   {% if cert_type_default=='fitness'   %}selected{% endif %}>Fitness Certificate</option>
+                <option value="sick_leave" {% if cert_type_default=='sick_leave'%}selected{% endif %}>Sick Leave Certificate</option>
+                <option value="birth"     {% if cert_type_default=='birth'     %}selected{% endif %}>Birth Certificate</option>
+                <option value="death"     {% if cert_type_default=='death'     %}selected{% endif %}>Death Certificate</option>
+                <option value="vaccination" {% if cert_type_default=='vaccination'%}selected{% endif %}>Vaccination Certificate</option>
+                <option value="disability"  {% if cert_type_default=='disability' %}selected{% endif %}>Disability Certificate</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Doctor <span class="text-danger">*</span></label>
+              <select name="doctor_id" class="form-select" required>
+                <option value="">-- Select Doctor --</option>
+                {% for d in doctors %}
+                <option value="{{ d.id }}">Dr. {{ d.first_name }} {{ d.last_name }} — {{ d.specialization or d.department.name if d.department else '' }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <hr class="my-3"><h6 class="fw-semibold text-muted">Patient Details</h6>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Registered Patient (optional)</label>
+            <select name="patient_id" class="form-select" onchange="fillPatient(this)">
+              <option value="">-- Walk-in / Unregistered --</option>
+              {% for p in patients %}
+              <option value="{{ p.id }}"
+                data-name="{{ p.first_name }} {{ p.last_name }}"
+                data-age="{{ p.age or '' }}"
+                data-gender="{{ p.gender or '' }}"
+                {% if prefill_patient and p.id == prefill_patient.id %}selected{% endif %}>
+                {{ p.first_name }} {{ p.last_name }} ({{ p.patient_id }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Patient Name <span class="text-danger">*</span></label>
+              <input type="text" name="patient_name" id="patientName" class="form-control" required
+                     value="{{ prefill_patient.first_name + ' ' + prefill_patient.last_name if prefill_patient else '' }}">
+            </div>
+            <div class="col-3">
+              <label class="form-label fw-semibold">Age</label>
+              <input type="text" name="patient_age" id="patientAge" class="form-control" placeholder="e.g. 35 years"
+                     value="{{ prefill_patient.age if prefill_patient else '' }}">
+            </div>
+            <div class="col-3">
+              <label class="form-label fw-semibold">Gender</label>
+              <select name="patient_gender" id="patientGender" class="form-select">
+                <option value="">-</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="my-3"><h6 class="fw-semibold text-muted">Certificate Details</h6>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Diagnosis / Condition</label>
+            <input type="text" name="diagnosis" class="form-control" placeholder="Clinical diagnosis...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Purpose / Issued To</label>
+            <input type="text" name="purpose" class="form-control" placeholder="e.g. For job purposes, School admission, HR Department...">
+          </div>
+
+          <div id="sickLeaveFields" style="display:none;">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Rest Days Recommended</label>
+              <input type="number" name="rest_days" class="form-control" min="1" placeholder="Number of days">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Valid Until (leave blank for no expiry)</label>
+              <input type="date" name="valid_until" class="form-control">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Additional Notes</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-warning text-dark fw-semibold">Issue Certificate</button>
+            <a href="{{ url_for('certificates.index') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fillPatient(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (opt.value) {
+    document.getElementById('patientName').value = opt.getAttribute('data-name') || '';
+    document.getElementById('patientAge').value = opt.getAttribute('data-age') || '';
+    const gender = opt.getAttribute('data-gender') || '';
+    const gs = document.getElementById('patientGender');
+    for (let i = 0; i < gs.options.length; i++) {
+      if (gs.options[i].value.toLowerCase() === gender.toLowerCase()) { gs.selectedIndex = i; break; }
+    }
+  }
+}
+function toggleFields() {
+  const ct = document.getElementById('certType').value;
+  document.getElementById('sickLeaveFields').style.display = ct === 'sick_leave' ? '' : 'none';
+}
+toggleFields();
+// Pre-fill if registered patient is selected
+document.querySelector('select[name="patient_id"]').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

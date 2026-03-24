@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Attendance Report{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('hr.attendance') }}">Attendance</a></li>
+<li class="breadcrumb-item active">Monthly Report</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Monthly Attendance — {{ month_name }} {{ year }}</h4>
+</div>
+
+<form method="GET" class="card shadow-sm mb-4">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Month</label>
+        <select name="month" class="form-select form-select-sm">
+          {% for num, name in months %}
+          <option value="{{ num }}" {% if num == month %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Year</label>
+        <select name="year" class="form-select form-select-sm">
+          {% for y in years %}
+          <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary btn-sm w-100">View</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle mb-0" style="font-size:12px;">
+        <thead class="table-dark">
+          <tr>
+            <th style="min-width:160px; position:sticky;left:0;background:#212529;">Staff</th>
+            {% for d in all_dates %}
+            <th class="text-center" style="min-width:36px;" title="{{ d.strftime('%A') }}">
+              {{ d.day }}<br>
+              <small style="font-size:9px;">{{ d.strftime('%a')[:1] }}</small>
+            </th>
+            {% endfor %}
+            <th class="text-center">P</th>
+            <th class="text-center">A</th>
+            <th class="text-center">L</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for staff in staff_list %}
+          {% set smap = att_map.get(staff.id, {}) %}
+          {% set p_count = smap.values()|select('in', ['present','late','half_day'])|list|length %}
+          {% set a_count = smap.values()|selectattr('__eq__','absent')|list|length %}
+          {% set l_count = smap.values()|select('equalto','on_leave')|list|length %}
+          <tr>
+            <td style="position:sticky;left:0;background:#fff;z-index:1;">
+              <div class="fw-semibold">{{ staff.full_name }}</div>
+              <div class="text-muted" style="font-size:10px;">{{ staff.role|replace('_',' ')|title }}</div>
+            </td>
+            {% for d in all_dates %}
+            {% set s = smap.get(d, '') %}
+            <td class="text-center p-0"
+                title="{{ d.strftime('%d %b') }}: {{ s|upper if s else 'No record' }}"
+                style="background:{%
+                  if s == 'present' %}#d1fae5
+                  {%- elif s == 'absent' %}#fee2e2
+                  {%- elif s == 'late' %}#fef9c3
+                  {%- elif s == 'half_day' %}#fed7aa
+                  {%- elif s == 'on_leave' %}#dbeafe
+                  {%- else %}transparent
+                  {%- endif %}">
+              {{ {'present':'P','absent':'A','late':'L','half_day':'H','on_leave':'OL'}.get(s,'') }}
+            </td>
+            {% endfor %}
+            <td class="text-center fw-bold text-success">{{ p_count }}</td>
+            <td class="text-center fw-bold text-danger">{{ a_count }}</td>
+            <td class="text-center fw-bold text-info">{{ l_count }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ all_dates|length + 4 }}" class="text-center py-4 text-muted">No staff records.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="mt-2 small text-muted d-flex gap-3">
+  <span><span style="background:#d1fae5;padding:2px 6px;border-radius:4px;">P</span> Present</span>
+  <span><span style="background:#fee2e2;padding:2px 6px;border-radius:4px;">A</span> Absent</span>
+  <span><span style="background:#fef9c3;padding:2px 6px;border-radius:4px;">L</span> Late</span>
+  <span><span style="background:#fed7aa;padding:2px 6px;border-radius:4px;">H</span> Half Day</span>
+  <span><span style="background:#dbeafe;padding:2px 6px;border-radius:4px;">OL</span> On Leave</span>
+</div>
+{% endblock %}

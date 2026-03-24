@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Certificate {{ cert.cert_number }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('certificates.index') }}">Certificates</a></li>
+<li class="breadcrumb-item active">{{ cert.cert_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-certificate me-2 text-warning"></i>{{ cert.cert_number }}</h4>
+    <p class="text-muted small mb-0">{{ cert.cert_type|replace('_',' ')|title }} — Issued {{ cert.issue_date.strftime('%d %B %Y') }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('certificates.print_cert', id=cert.id) }}" class="btn btn-warning text-dark" target="_blank">
+      <i class="fas fa-print me-2"></i>Print
+    </a>
+    {% if cert.status == 'active' %}
+    <form method="POST" action="{{ url_for('certificates.cancel', id=cert.id) }}" class="d-inline">
+      <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this certificate?')">Cancel</button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('certificates.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Patient Details</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Name</dt>
+          <dd class="col-7 fw-semibold">{{ cert.patient_name }}</dd>
+          <dt class="col-5 text-muted">Age</dt>
+          <dd class="col-7">{{ cert.patient_age or '-' }}</dd>
+          <dt class="col-5 text-muted">Gender</dt>
+          <dd class="col-7">{{ cert.patient_gender or '-' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Certificate Info</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Type</dt>
+          <dd class="col-7"><span class="badge bg-warning text-dark">{{ cert.cert_type|replace('_',' ')|title }}</span></dd>
+          <dt class="col-5 text-muted">Cert #</dt>
+          <dd class="col-7"><code>{{ cert.cert_number }}</code></dd>
+          <dt class="col-5 text-muted">Doctor</dt>
+          <dd class="col-7">{% if cert.doctor %}Dr. {{ cert.doctor.first_name }} {{ cert.doctor.last_name }}{% else %}-{% endif %}</dd>
+          <dt class="col-5 text-muted">Issue Date</dt>
+          <dd class="col-7">{{ cert.issue_date.strftime('%d %b %Y') }}</dd>
+          <dt class="col-5 text-muted">Valid Until</dt>
+          <dd class="col-7">{{ cert.valid_until.strftime('%d %b %Y') if cert.valid_until else 'No expiry' }}</dd>
+          <dt class="col-5 text-muted">Status</dt>
+          <dd class="col-7"><span class="badge bg-{% if cert.status=='active' %}success{% else %}secondary{% endif %}">{{ cert.status|title }}</span></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Clinical Details</div>
+      <div class="card-body">
+        {% if cert.diagnosis %}<p><strong>Diagnosis:</strong> {{ cert.diagnosis }}</p>{% endif %}
+        {% if cert.purpose %}<p><strong>Purpose / Issued To:</strong> {{ cert.purpose }}</p>{% endif %}
+        {% if cert.rest_days %}<p><strong>Rest Recommended:</strong> {{ cert.rest_days }} days</p>{% endif %}
+        {% if cert.notes %}<p class="text-muted mb-0">{{ cert.notes }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

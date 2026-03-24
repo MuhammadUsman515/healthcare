@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>{{ cert.cert_number }}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Georgia, serif; font-size: 14px; padding: 40px; max-width: 700px; margin: 0 auto; }
+    .header { text-align: center; border-bottom: 3px double #333; padding-bottom: 16px; margin-bottom: 24px; }
+    .hospital-name { font-size: 22px; font-weight: bold; }
+    .cert-title { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin: 16px 0 8px; color: #444; }
+    .cert-number { font-size: 12px; color: #666; }
+    .body { line-height: 2; }
+    .field { display: inline-block; border-bottom: 1px solid #333; min-width: 200px; font-weight: bold; }
+    .footer { margin-top: 60px; display: flex; justify-content: space-between; }
+    .signature-block { text-align: center; }
+    .signature-line { border-top: 1px solid #333; width: 200px; margin: 0 auto 4px; }
+    @media print { .no-print { display: none; } @page { margin: 20mm; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="hospital-name">MEDICAL CERTIFICATE</div>
+    <div class="cert-title">{{ cert.cert_type|replace('_',' ')|upper }}</div>
+    <div class="cert-number">Certificate No: {{ cert.cert_number }}</div>
+  </div>
+
+  <div class="body">
+    <p>This is to certify that:</p>
+    <br>
+    <p>Patient Name: <span class="field">{{ cert.patient_name }}</span></p>
+    <p>Age: <span class="field">{{ cert.patient_age or '___' }}</span> &nbsp;&nbsp; Gender: <span class="field">{{ cert.patient_gender or '___' }}</span></p>
+
+    {% if cert.cert_type == 'fitness' %}
+    <br><p>has been examined by the undersigned and is found to be <strong>medically fit</strong>{% if cert.purpose %} for {{ cert.purpose }}{% endif %}.</p>
+
+    {% elif cert.cert_type == 'sick_leave' %}
+    <br><p>is suffering from <span class="field">{{ cert.diagnosis or '___' }}</span> and is advised complete rest for
+    <strong>{{ cert.rest_days or '___' }} day(s)</strong> from {{ cert.issue_date.strftime('%d/%m/%Y') }}.</p>
+
+    {% elif cert.cert_type == 'birth' %}
+    <br><p>was delivered on this date at our facility. The above patient details have been recorded.</p>
+
+    {% elif cert.cert_type == 'death' %}
+    <br><p>was brought to our facility and was declared expired. Cause of death: <span class="field">{{ cert.diagnosis or '___' }}</span>.</p>
+
+    {% elif cert.cert_type == 'vaccination' %}
+    <br><p>has received the required vaccination{% if cert.diagnosis %} for {{ cert.diagnosis }}{% endif %} on {{ cert.issue_date.strftime('%d/%m/%Y') }}.</p>
+
+    {% else %}
+    {% if cert.diagnosis %}<br><p>Diagnosis: <span class="field">{{ cert.diagnosis }}</span></p>{% endif %}
+    {% endif %}
+
+    {% if cert.notes %}<br><p><em>{{ cert.notes }}</em></p>{% endif %}
+    {% if cert.valid_until %}<br><p>Valid Until: <strong>{{ cert.valid_until.strftime('%d %B %Y') }}</strong></p>{% endif %}
+  </div>
+
+  <div class="footer">
+    <div>
+      <p>Date: {{ cert.issue_date.strftime('%d %B %Y') }}</p>
+    </div>
+    <div class="signature-block">
+      <div class="signature-line"></div>
+      <p><strong>{% if cert.doctor %}Dr. {{ cert.doctor.first_name }} {{ cert.doctor.last_name }}{% else %}Authorized Physician{% endif %}</strong></p>
+      {% if cert.doctor and cert.doctor.specialization %}<p style="font-size:12px;color:#666;">{{ cert.doctor.specialization }}</p>{% endif %}
+      <p style="font-size:12px;color:#666;">Reg. No: {{ cert.cert_number }}</p>
+    </div>
+  </div>
+
+  <div class="no-print" style="text-align:center; margin-top:30px;">
+    <button onclick="window.print();" style="padding:10px 24px; font-size:14px; cursor:pointer;">Print Certificate</button>
+  </div>
+  <script>window.onload = () => window.print();</script>
+</body>
+</html>
