@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from flask_login import login_required
+from flask_login import login_required, current_user
 from models import (db, Patient, Doctor, Appointment, Bill, Admission, Medicine,
                     Department, Staff, BloodInventory, Ambulance, OPDQueue,
                     BloodRequest, AmbulanceDispatch, Referral)
