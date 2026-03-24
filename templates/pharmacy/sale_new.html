@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Counter Sale{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('pharmacy.index') }}">Pharmacy</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('pharmacy.sales') }}">Sales</a></li>
+<li class="breadcrumb-item active">New Counter Sale</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="fas fa-cash-register me-2 text-success"></i>Counter Sale (POS)</h4>
+  <a href="{{ url_for('pharmacy.sales') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back</a>
+</div>
+
+<form method="POST" id="saleForm">
+<div class="row g-4">
+
+  <!-- Left: Items -->
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Medicines</span>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRow()">
+          <i class="fas fa-plus me-1"></i>Add Row
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <table class="table align-middle mb-0" id="itemsTable">
+          <thead class="table-light">
+            <tr>
+              <th style="width:40%">Medicine</th>
+              <th style="width:15%">Qty</th>
+              <th style="width:20%">Unit Price</th>
+              <th style="width:15%">Total</th>
+              <th style="width:10%"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody">
+            <tr id="row-0">
+              <td>
+                <input type="hidden" name="medicine_id[]" id="med_id_0" value="">
+                <input type="text" class="form-control form-control-sm" id="med_name_0"
+                       name="medicine_name[]" placeholder="Search medicine..."
+                       autocomplete="off" oninput="searchMedicine(this, 0)">
+                <div class="dropdown-menu w-100" id="suggest_0"></div>
+              </td>
+              <td><input type="number" name="quantity[]" id="qty_0" class="form-control form-control-sm" value="1" min="0.1" step="0.1" onchange="calcRow(0)" oninput="calcRow(0)"></td>
+              <td><input type="number" name="unit_price[]" id="price_0" class="form-control form-control-sm" value="0" min="0" step="0.01" onchange="calcRow(0)" oninput="calcRow(0)"></td>
+              <td><input type="text" id="total_0" class="form-control form-control-sm bg-light" value="0" readonly></td>
+              <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(0)"><i class="fas fa-times"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Summary -->
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold">Customer</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Registered Patient (optional)</label>
+          <select name="patient_id" class="form-select form-select-sm" onchange="fillPatientName(this)">
+            <option value="">-- Walk-in --</option>
+            {% for p in patients %}
+            <option value="{{ p.id }}" data-name="{{ p.first_name }} {{ p.last_name }}">
+              {{ p.first_name }} {{ p.last_name }} ({{ p.patient_id }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Name</label>
+          <input type="text" name="patient_name" id="patientNameInput" class="form-control form-control-sm" placeholder="Walk-in customer">
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Payment</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Payment Method</label>
+          <select name="payment_method" class="form-select form-select-sm">
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="online">Online Transfer</option>
+            <option value="credit">Credit / Insurance</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Discount (Rs.)</label>
+          <input type="number" name="discount" id="discountInput" class="form-control form-control-sm" value="0" min="0" step="1" oninput="updateGrandTotal()">
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted small">Subtotal</span>
+          <span id="subtotalDisplay" class="fw-semibold">Rs. 0</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted small">Discount</span>
+          <span id="discountDisplay" class="text-danger">- Rs. 0</span>
+        </div>
+        <div class="d-flex justify-content-between mb-3 border-top pt-2">
+          <span class="fw-bold">Total</span>
+          <span id="grandTotalDisplay" class="fw-bold fs-5 text-success">Rs. 0</span>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Notes</label>
+          <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 fw-semibold">
+          <i class="fas fa-check me-2"></i>Complete Sale
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let rowCount = 1;
+let subtotal = 0;
+
+function addRow() {
+  const i = rowCount++;
+  const tbody = document.getElementById('itemsBody');
+  const tr = document.createElement('tr');
+  tr.id = `row-${i}`;
+  tr.innerHTML = `
+    <td>
+      <input type="hidden" name="medicine_id[]" id="med_id_${i}" value="">
+      <input type="text" class="form-control form-control-sm" id="med_name_${i}"
+             name="medicine_name[]" placeholder="Search medicine..."
+             autocomplete="off" oninput="searchMedicine(this, ${i})">
+      <div class="dropdown-menu w-100" id="suggest_${i}"></div>
+    </td>
+    <td><input type="number" name="quantity[]" id="qty_${i}" class="form-control form-control-sm" value="1" min="0.1" step="0.1" onchange="calcRow(${i})" oninput="calcRow(${i})"></td>
+    <td><input type="number" name="unit_price[]" id="price_${i}" class="form-control form-control-sm" value="0" min="0" step="0.01" onchange="calcRow(${i})" oninput="calcRow(${i})"></td>
+    <td><input type="text" id="total_${i}" class="form-control form-control-sm bg-light" value="0" readonly></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(${i})"><i class="fas fa-times"></i></button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeRow(i) {
+  const row = document.getElementById(`row-${i}`);
+  if (row) row.remove();
+  updateGrandTotal();
+}
+
+function calcRow(i) {
+  const qty = parseFloat(document.getElementById(`qty_${i}`)?.value || 0);
+  const price = parseFloat(document.getElementById(`price_${i}`)?.value || 0);
+  const total = qty * price;
+  const t = document.getElementById(`total_${i}`);
+  if (t) t.value = total.toFixed(2);
+  updateGrandTotal();
+}
+
+function updateGrandTotal() {
+  let sub = 0;
+  document.querySelectorAll('[id^="total_"]').forEach(el => {
+    sub += parseFloat(el.value || 0);
+  });
+  const discount = parseFloat(document.getElementById('discountInput')?.value || 0);
+  const grand = Math.max(0, sub - discount);
+
+  document.getElementById('subtotalDisplay').textContent = 'Rs. ' + sub.toLocaleString('en-PK', {maximumFractionDigits: 0});
+  document.getElementById('discountDisplay').textContent = '- Rs. ' + discount.toLocaleString('en-PK', {maximumFractionDigits: 0});
+  document.getElementById('grandTotalDisplay').textContent = 'Rs. ' + grand.toLocaleString('en-PK', {maximumFractionDigits: 0});
+}
+
+function searchMedicine(input, i) {
+  const q = input.value;
+  if (q.length < 2) {
+    document.getElementById(`suggest_${i}`).classList.remove('show');
+    return;
+  }
+  fetch(`/pharmacy/api/search?q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(data => {
+      const menu = document.getElementById(`suggest_${i}`);
+      menu.innerHTML = '';
+      if (!data.length) { menu.classList.remove('show'); return; }
+      data.forEach(m => {
+        const item = document.createElement('a');
+        item.className = 'dropdown-item d-flex justify-content-between';
+        item.href = '#';
+        item.innerHTML = `<span>${m.name} ${m.generic_name ? '<small class="text-muted">(' + m.generic_name + ')</small>' : ''}</span>
+                          <span class="text-muted small">Stock: ${m.stock_quantity} | Rs. ${m.unit_price}</span>`;
+        item.onclick = (e) => {
+          e.preventDefault();
+          document.getElementById(`med_id_${i}`).value = m.id;
+          document.getElementById(`med_name_${i}`).value = m.name;
+          document.getElementById(`price_${i}`).value = m.unit_price;
+          calcRow(i);
+          menu.classList.remove('show');
+        };
+        menu.appendChild(item);
+      });
+      menu.classList.add('show');
+    });
+}
+
+function fillPatientName(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (opt.value) {
+    document.getElementById('patientNameInput').value = opt.getAttribute('data-name') || '';
+  }
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+});
+</script>
+{% endblock %}

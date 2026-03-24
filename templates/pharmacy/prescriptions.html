@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Prescriptions - MediCare HMS{% endblock %}
+{% block title %}Prescriptions Queue{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
 <li class="breadcrumb-item"><a href="{{ url_for('pharmacy.index') }}">Pharmacy</a></li>
@@ -8,43 +8,127 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0"><i class="fas fa-prescription me-2 text-primary"></i>Active Prescriptions</h4>
-    <a href="{{ url_for('pharmacy.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back</a>
+  <div>
+    <h4 class="fw-bold mb-0"><i class="fas fa-prescription me-2 text-primary"></i>Prescription Queue</h4>
+    <p class="text-muted small mb-0">{{ prescriptions|length }} active prescription(s) awaiting dispense</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('pharmacy.sale_new') }}" class="btn btn-success"><i class="fas fa-cash-register me-2"></i>Counter Sale</a>
+    <a href="{{ url_for('pharmacy.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Inventory</a>
+  </div>
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr><th>Medicine</th><th>Patient</th><th>Doctor</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Status</th><th>Actions</th></tr>
-                </thead>
-                <tbody>
-                    {% for p in prescriptions %}
-                    <tr>
-                        <td class="fw-semibold">{{ p.medicine_name }}</td>
-                        <td>{{ p.medical_record.patient.full_name }}</td>
-                        <td class="small text-muted">{{ p.medical_record.doctor.full_name }}</td>
-                        <td class="small">{{ p.dosage or '-' }}</td>
-                        <td class="small">{{ p.frequency or '-' }}</td>
-                        <td class="small">{{ p.duration or '-' }}</td>
-                        <td><span class="badge bg-{% if p.status == 'active' %}warning text-dark{% elif p.status == 'dispensed' %}success{% else %}secondary{% endif %}">{{ p.status }}</span></td>
-                        <td>
-                            {% if p.status == 'active' %}
-                            <form method="POST" action="{{ url_for('pharmacy.dispense', id=p.id) }}" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-success">
-                                    <i class="fas fa-check me-1"></i>Dispense
-                                </button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="8" class="text-center py-5 text-muted">No active prescriptions</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Medicine</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Dosage / Freq / Duration</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in prescriptions %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ p.medicine_name }}</div>
+              <div class="text-muted small">{{ p.instructions or '' }}</div>
+            </td>
+            <td>
+              {% if p.medical_record and p.medical_record.patient %}
+                <a href="{{ url_for('patients.view', id=p.medical_record.patient.id) }}" class="text-decoration-none fw-semibold">
+                  {{ p.medical_record.patient.first_name }} {{ p.medical_record.patient.last_name }}
+                </a>
+              {% else %}-{% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if p.medical_record and p.medical_record.doctor %}
+                Dr. {{ p.medical_record.doctor.first_name }} {{ p.medical_record.doctor.last_name }}
+              {% else %}-{% endif %}
+            </td>
+            <td class="small">
+              {% if p.dosage %}<span class="badge bg-light text-dark border me-1">{{ p.dosage }}</span>{% endif %}
+              {% if p.frequency %}<span class="badge bg-light text-dark border me-1">{{ p.frequency }}</span>{% endif %}
+              {% if p.duration %}<span class="badge bg-light text-dark border">{{ p.duration }}</span>{% endif %}
+            </td>
+            <td class="small text-muted">{{ p.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              <button type="button" class="btn btn-sm btn-success"
+                      data-bs-toggle="modal"
+                      data-bs-target="#dispenseModal{{ p.id }}">
+                <i class="fas fa-pills me-1"></i>Dispense
+              </button>
+            </td>
+          </tr>
+
+          <!-- Dispense Modal -->
+          <div class="modal fade" id="dispenseModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title"><i class="fas fa-pills me-2"></i>Dispense: {{ p.medicine_name }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('pharmacy.dispense', id=p.id) }}">
+                  <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                      <strong>Patient:</strong>
+                      {% if p.medical_record and p.medical_record.patient %}
+                        {{ p.medical_record.patient.first_name }} {{ p.medical_record.patient.last_name }}
+                      {% endif %} &nbsp;|&nbsp;
+                      <strong>Prescribed:</strong> {{ p.dosage or '-' }} &nbsp;
+                      {{ p.frequency or '' }} &nbsp; {{ p.duration or '' }}
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Match Inventory Item</label>
+                      <select name="medicine_id" class="form-select">
+                        <option value="">-- Auto-match by name --</option>
+                        {% for m in medicines %}
+                        <option value="{{ m.id }}"
+                          {% if m.name.lower() in p.medicine_name.lower() or p.medicine_name.lower() in m.name.lower() %}selected{% endif %}>
+                          {{ m.name }} ({{ m.unit or 'unit' }}) — Stock: {{ m.stock_quantity }} — Rs. {{ m.unit_price }}
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Quantity to Dispense</label>
+                      <input type="number" name="quantity" class="form-control" value="1" min="1" required>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Payment Method</label>
+                      <select name="payment_method" class="form-select">
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="online">Online Transfer</option>
+                        <option value="credit">Credit / Insurance</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i>Dispense & Record Sale</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <tr><td colspan="6" class="text-center py-5 text-muted">
+            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No active prescriptions in queue
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
 </div>
 {% endblock %}

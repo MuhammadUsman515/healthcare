@@ -1139,3 +1139,48 @@ class DoctorSchedule(db.Model):
 
     def __repr__(self):
         return f'<DoctorSchedule Dr.{self.doctor_id} {self.day_of_week}>'
+
+
+class PharmacySale(db.Model):
+    """Counter / Over-the-Counter pharmacy sale (walk-in or prescription-linked)."""
+    __tablename__ = 'pharmacy_sales'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    sale_number = db.Column(db.String(20), unique=True, nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
+    patient_name = db.Column(db.String(200))          # walk-in without registered patient
+    prescription_id = db.Column(db.Integer, db.ForeignKey('prescriptions.id'), nullable=True)
+    sold_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    sale_date = db.Column(db.DateTime, default=datetime.utcnow)
+    subtotal = db.Column(db.Float, default=0.0)
+    discount = db.Column(db.Float, default=0.0)
+    total_amount = db.Column(db.Float, default=0.0)
+    payment_method = db.Column(db.String(50), default='cash')  # cash, card, online, credit
+    payment_status = db.Column(db.String(20), default='paid')  # paid, pending, refunded
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    items = db.relationship('PharmacySaleItem', backref='sale', cascade='all, delete-orphan')
+    patient = db.relationship('Patient', backref='pharmacy_sales')
+    seller = db.relationship('User', backref='pharmacy_sales', foreign_keys=[sold_by])
+
+    def __repr__(self):
+        return f'<PharmacySale {self.sale_number}>'
+
+
+class PharmacySaleItem(db.Model):
+    """Individual line item in a pharmacy sale."""
+    __tablename__ = 'pharmacy_sale_items'
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('pharmacy_sales.id'), nullable=False)
+    medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=True)
+    medicine_name = db.Column(db.String(200), nullable=False)
+    quantity = db.Column(db.Float, default=1)
+    unit_price = db.Column(db.Float, default=0.0)
+    total_price = db.Column(db.Float, default=0.0)
+
+    medicine = db.relationship('Medicine', backref='sale_items')
+
+    def __repr__(self):
+        return f'<PharmacySaleItem {self.medicine_name}>'

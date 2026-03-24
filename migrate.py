@@ -68,6 +68,8 @@ NEW_COLUMNS = [
     ('purchase_orders',    'branch_id', 'INTEGER REFERENCES branches(id)'),
 ]
 
+# New tables are created via db.create_all() below (PharmacySale, PharmacySaleItem)
+
 with app.app_context():
     conn = db.engine.raw_connection()
     cursor = conn.cursor()
