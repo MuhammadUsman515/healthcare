@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}No-Show Prediction{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="fas fa-user-times me-2 text-warning"></i>No-Show Prediction</h4>
+      <p class="text-muted small mb-0">Tomorrow's appointments — {{ tomorrow }} — {{ total }} total</p>
+    </div>
+    <a href="{{ url_for('ai.index') }}" class="btn btn-outline-secondary btn-sm">← AI Tools</a>
+  </div>
+
+  <!-- Summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <div class="text-danger fw-bold fs-4">{{ high_risk|length }}</div>
+        <div class="text-muted small">High Risk (≥70%)</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <div class="text-warning fw-bold fs-4">{{ medium_risk|length }}</div>
+        <div class="text-muted small">Medium Risk (40–69%)</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center p-3">
+        <div class="text-success fw-bold fs-4">{{ low_risk|length }}</div>
+        <div class="text-muted small">Low Risk (&lt;40%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent fw-semibold">Risk-Ranked Appointments</div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>Patient</th><th>Doctor</th><th>Time</th><th>Risk Score</th><th>Level</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          <tr>
+            <td>
+              {% if r.patient %}
+              <a href="{{ url_for('patients.view', id=r.patient.id) }}">{{ r.patient.full_name }}</a>
+              <div class="text-muted small">{{ r.patient.phone }}</div>
+              {% else %}Unknown{% endif %}
+            </td>
+            <td>{{ r.doctor.full_name if r.doctor else '—' }}</td>
+            <td>{{ r.appointment.appointment_time }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height:8px;width:80px">
+                  <div class="progress-bar bg-{{ 'danger' if r.risk_level=='high' else 'warning' if r.risk_level=='medium' else 'success' }}"
+                       style="width:{{ r.pct }}%"></div>
+                </div>
+                <span class="fw-semibold">{{ r.pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-{{ 'danger' if r.risk_level=='high' else 'warning text-dark' if r.risk_level=='medium' else 'success' }}">
+                {{ r.risk_level|title }}
+              </span>
+            </td>
+            <td>
+              {% if r.patient and r.patient.phone and r.risk_level in ['high','medium'] %}
+              <button class="btn btn-sm btn-outline-success" title="Send reminder">
+                <i class="fas fa-sms"></i>
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No appointments scheduled for tomorrow.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

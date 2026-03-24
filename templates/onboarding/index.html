@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Setup Wizard — {{ org.name }}{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width:700px">
+  <div class="text-center mb-4">
+    <h3 class="fw-bold">Welcome to MediOS! 🎉</h3>
+    <p class="text-muted">Complete your setup in a few steps and go live in minutes.</p>
+    <div class="progress mb-2" style="height:12px;border-radius:10px">
+      <div class="progress-bar bg-success" style="width:{{ progress.completion_pct }}%;border-radius:10px"></div>
+    </div>
+    <div class="text-muted small">{{ progress.completion_pct }}% complete</div>
+  </div>
+
+  <div class="row g-3">
+    {% set step_keys = ['org_profile','branch','doctors','services','schedule','staff','reminders'] %}
+    {% set step_done = [progress.step_org_profile, progress.step_branch, progress.step_doctors,
+                        progress.step_services, progress.step_schedule, progress.step_staff, progress.step_reminders] %}
+    {% set step_urls = [
+      url_for('onboarding.org_profile'),
+      url_for('onboarding.setup_branch'),
+      url_for('onboarding.setup_doctors'),
+      url_for('onboarding.setup_services'),
+      url_for('onboarding.setup_schedule'),
+      url_for('onboarding.setup_staff'),
+      url_for('onboarding.setup_reminders'),
+    ] %}
+
+    {% for step in steps %}
+    {% set i = loop.index0 %}
+    <div class="col-md-6">
+      <a href="{{ step_urls[i] }}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm p-3 d-flex flex-row align-items-center gap-3 {{ 'border border-success' if step_done[i] }}">
+          <div class="rounded-circle d-flex align-items-center justify-content-center"
+               style="width:44px;height:44px;background:{{ '#22c55e' if step_done[i] else '#e5e7eb' }}">
+            <i class="fas fa-{{ step.icon if not step_done[i] else 'check' }} text-{{ 'white' if step_done[i] else 'secondary' }}"></i>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ loop.index }}. {{ step.label }}</div>
+            <div class="text-muted small">{{ 'Completed ✓' if step_done[i] else 'Tap to setup' }}</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if progress.completion_pct >= 50 %}
+  <div class="text-center mt-4">
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-success btn-lg">
+      <i class="fas fa-rocket me-2"></i>Go to Dashboard
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

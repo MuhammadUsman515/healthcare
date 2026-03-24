@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Upgrade Plan{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:900px">
+  <h4 class="fw-bold text-center mb-2">Choose Your Plan</h4>
+  <p class="text-muted text-center mb-4">Upgrade anytime. Downgrade whenever you want.</p>
+
+  <div class="row g-3">
+    {% for plan in plans %}
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100 {{ 'border border-primary border-2' if plan.is_current }}">
+        <div class="card-body d-flex flex-column">
+          <div class="fw-bold fs-5 text-capitalize mb-1">{{ plan.label }}</div>
+          <div class="fs-3 fw-bold text-primary mb-1">Rs. {{ plan.price_pkr }}<span class="text-muted fs-6">/mo</span></div>
+          <div class="text-muted small mb-3">${{ plan.price_usd }} USD</div>
+
+          <ul class="list-unstyled small mb-4">
+            <li class="mb-1"><i class="fas fa-users me-2 text-muted"></i>{{ plan.features.max_users }} Users</li>
+            <li class="mb-1"><i class="fas fa-map-marker-alt me-2 text-muted"></i>{{ plan.features.max_branches }} Branches</li>
+            <li class="mb-1"><i class="fas fa-user-injured me-2 text-muted"></i>{{ plan.features.max_patients_per_month }} patients/mo</li>
+            {% if plan.features.ai %}<li class="mb-1"><i class="fas fa-brain me-2 text-success"></i>AI Features</li>{% endif %}
+            {% if plan.features.reminders %}<li class="mb-1"><i class="fas fa-bell me-2 text-success"></i>Reminders</li>{% endif %}
+            {% if plan.features.lab %}<li class="mb-1"><i class="fas fa-microscope me-2 text-success"></i>Lab Module</li>{% endif %}
+            {% if plan.features.pharmacy %}<li class="mb-1"><i class="fas fa-pills me-2 text-success"></i>Pharmacy</li>{% endif %}
+            {% if plan.features.ipd %}<li class="mb-1"><i class="fas fa-bed me-2 text-success"></i>IPD Module</li>{% endif %}
+            {% if plan.features.whatsapp %}<li class="mb-1"><i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp</li>{% endif %}
+          </ul>
+
+          <div class="mt-auto">
+            {% if plan.is_current %}
+            <div class="btn btn-success w-100 disabled">Current Plan</div>
+            {% else %}
+            <form method="POST" action="{{ url_for('billing_saas.upgrade') }}">
+              <input type="hidden" name="plan_type" value="{{ plan.key }}">
+              <input type="hidden" name="payment_method" value="manual">
+              <button class="btn btn-primary w-100">Select {{ plan.label }}</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="text-center mt-4 text-muted small">
+    <i class="fas fa-lock me-1"></i>Secure billing. No hidden charges. Cancel anytime.
+  </div>
+</div>
+{% endblock %}

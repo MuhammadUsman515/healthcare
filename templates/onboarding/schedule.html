@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Step 5 — Doctor Schedules{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:700px">
+  <h4 class="fw-bold mb-1"><i class="fas fa-calendar-alt me-2 text-primary"></i>Step 5: Doctor Schedules</h4>
+  <p class="text-muted mb-3">Set weekly availability for your doctors.</p>
+  <form method="POST">
+    {% if doctors %}
+    {% for doc in doctors %}
+    <div class="card border-0 shadow-sm mb-3 p-3">
+      <div class="fw-semibold mb-2">{{ doc.full_name }} — {{ doc.specialization }}</div>
+      <input type="hidden" name="doctor_id" value="{{ doc.id }}">
+      <div class="row g-2">
+        <div class="col-12">
+          <label class="form-label small">Working Days (comma-separated)</label>
+          <input type="text" name="days" class="form-control" value="Mon,Tue,Wed,Thu,Fri" placeholder="Mon,Tue,Wed,Thu,Fri">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Start Time</label>
+          <input type="time" name="start_time" class="form-control" value="09:00">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">End Time</label>
+          <input type="time" name="end_time" class="form-control" value="17:00">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Slot (min)</label>
+          <select name="slot_duration" class="form-select">
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-warning">No doctors added yet. <a href="{{ url_for('onboarding.setup_doctors') }}">Add doctors first</a>.</div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('onboarding.setup_services') }}" class="btn btn-outline-secondary">← Back</a>
+      <div>
+        <a href="{{ url_for('onboarding.setup_staff') }}" class="btn btn-outline-secondary me-2">Skip</a>
+        <button class="btn btn-primary px-4">Save & Continue →</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

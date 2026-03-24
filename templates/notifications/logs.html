@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Notification Logs{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="fas fa-history me-2"></i>Notification Logs</h4>
+    <a href="{{ url_for('notifications.index') }}" class="btn btn-outline-secondary btn-sm">← Back</a>
+  </div>
+  <form class="row g-2 mb-3" method="GET">
+    <div class="col-md-3">
+      <select name="channel" class="form-select">
+        <option value="all">All Channels</option>
+        {% for ch in ['sms','whatsapp','email'] %}
+        <option value="{{ ch }}" {% if channel==ch %}selected{% endif %}>{{ ch|upper }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="event_type" class="form-select">
+        <option value="all">All Events</option>
+        {% for evt in ['appointment_reminder','follow_up_due','bill_due','manual'] %}
+        <option value="{{ evt }}" {% if event_type==evt %}selected{% endif %}>{{ evt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-primary">Filter</button></div>
+  </form>
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>Event</th><th>Channel</th><th>Recipient</th><th>Message</th><th>Status</th><th>Sent At</th></tr></thead>
+        <tbody>
+          {% for log in logs.items %}
+          <tr>
+            <td><span class="badge bg-secondary">{{ log.event_type }}</span></td>
+            <td><span class="badge bg-info">{{ log.channel }}</span></td>
+            <td class="small">{{ log.recipient }}</td>
+            <td class="small">{{ log.message[:60] }}{% if log.message|length > 60 %}…{% endif %}</td>
+            <td><span class="badge bg-{{ 'success' if log.status=='sent' else 'danger' }}">{{ log.status }}</span></td>
+            <td class="small text-muted">{{ log.sent_at.strftime('%b %d %H:%M') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No logs found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if logs.pages > 1 %}
+    <div class="card-footer">
+      <nav><ul class="pagination pagination-sm mb-0 justify-content-center">
+        {% for p in range(1, logs.pages+1) %}
+        <li class="page-item {{ 'active' if p==logs.page }}">
+          <a class="page-link" href="?page={{ p }}&channel={{ channel }}&event_type={{ event_type }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+      </ul></nav>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -2,9 +2,12 @@ from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from models import (db, Patient, MedicalRecord, Appointment, Bill, BillItem,
                     Doctor, LabTest, Admission, OPDQueue, Prescription,
-                    BloodRequest, BloodInventory, Staff, Ward, Bed)
+                    BloodRequest, BloodInventory, Staff, Ward, Bed,
+                    AIInsight, AIRiskScore, FollowUpTask, AIUsageLog,
+                    NotificationTemplate, NotificationLog)
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_
+import time
 
 ai_bp = Blueprint('ai', __name__, url_prefix='/ai')
 
@@ -941,3 +944,547 @@ def chat_message():
         return jsonify({'html': '<p class="text-muted">Kuch type karen…</p>', 'quick': []})
     html, quick = _process_message(msg)
     return jsonify({'html': html, 'quick': quick})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI PREDICTIVE ENGINE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _log_ai_usage(feature, org_id=None, user_id=None, tokens=0, latency_ms=0, status='success'):
+    log = AIUsageLog(
+        org_id=org_id or (current_user.org_id if current_user.is_authenticated else None),
+        user_id=user_id or (current_user.id if current_user.is_authenticated else None),
+        feature=feature,
+        tokens_used=tokens,
+        latency_ms=latency_ms,
+        status=status,
+    )
+    db.session.add(log)
+    db.session.commit()
+
+
+def _compute_no_show_score(patient_id, org_id=None):
+    """
+    Rule-based no-show risk score (0.0–1.0).
+    Factors: past no-shows, cancellations, total visits, days since last visit.
+    """
+    total = Appointment.query.filter_by(patient_id=patient_id).count()
+    if total == 0:
+        return 0.5  # unknown → medium risk
+
+    no_shows = Appointment.query.filter_by(patient_id=patient_id, status='no-show').count()
+    cancelled = Appointment.query.filter_by(patient_id=patient_id, status='cancelled').count()
+    completed = Appointment.query.filter_by(patient_id=patient_id, status='completed').count()
+
+    # Last visit recency
+    last_appt = Appointment.query.filter_by(
+        patient_id=patient_id, status='completed'
+    ).order_by(Appointment.appointment_date.desc()).first()
+    days_since = (date.today() - last_appt.appointment_date).days if last_appt else 365
+
+    score = 0.0
+    score += (no_shows / max(total, 1)) * 0.45      # 45% weight: no-show history
+    score += (cancelled / max(total, 1)) * 0.25     # 25% weight: cancellation rate
+    score += min(days_since / 365, 1.0) * 0.20      # 20% weight: recency
+    score += (1 - min(completed / max(total, 1), 1)) * 0.10  # 10% weight: low completion
+
+    return round(min(score, 1.0), 3)
+
+
+def _risk_level(score):
+    if score >= 0.70:
+        return 'high'
+    if score >= 0.40:
+        return 'medium'
+    return 'low'
+
+
+# ── No-show Prediction ────────────────────────────────────────────────────────
+
+@ai_bp.route('/predict/no-show', methods=['GET', 'POST'])
+@login_required
+def predict_no_show():
+    org_id = current_user.org_id
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+
+    start = time.time()
+    # Score tomorrow's appointments
+    upcoming = Appointment.query.filter(
+        Appointment.appointment_date == tomorrow,
+        Appointment.status == 'scheduled',
+    )
+    if org_id:
+        upcoming = upcoming.filter_by(org_id=org_id)
+    upcoming = upcoming.all()
+
+    results = []
+    for appt in upcoming:
+        score = _compute_no_show_score(appt.patient_id, org_id)
+        level = _risk_level(score)
+        results.append({
+            'appointment': appt,
+            'patient': appt.patient,
+            'doctor': appt.doctor,
+            'score': score,
+            'risk_level': level,
+            'pct': int(score * 100),
+        })
+
+    results.sort(key=lambda x: x['score'], reverse=True)
+    latency = int((time.time() - start) * 1000)
+    _log_ai_usage('no_show_prediction', org_id=org_id, latency_ms=latency)
+
+    high_risk = [r for r in results if r['risk_level'] == 'high']
+    medium_risk = [r for r in results if r['risk_level'] == 'medium']
+    low_risk = [r for r in results if r['risk_level'] == 'low']
+
+    return render_template('ai/no_show_prediction.html',
+        results=results, high_risk=high_risk, medium_risk=medium_risk,
+        low_risk=low_risk, tomorrow=tomorrow, total=len(results))
+
+
+# ── Patient Risk Scoring ───────────────────────────────────────────────────────
+
+@ai_bp.route('/predict/patient-risk')
+@login_required
+def patient_risk_dashboard():
+    org_id = current_user.org_id
+    start = time.time()
+
+    query = Patient.query.filter_by(status='active')
+    if org_id:
+        query = query.filter_by(org_id=org_id)
+    patients = query.limit(200).all()
+
+    risk_data = []
+    for patient in patients:
+        risks = []
+        score_total = 0.0
+
+        # 1. Chronic condition risk
+        if patient.chronic_conditions:
+            conditions = patient.chronic_conditions.lower()
+            chronic_score = 0.0
+            if 'diabetes' in conditions: chronic_score += 0.3
+            if 'hypertension' in conditions or 'bp' in conditions: chronic_score += 0.25
+            if 'heart' in conditions or 'cardiac' in conditions: chronic_score += 0.35
+            if 'kidney' in conditions or 'renal' in conditions: chronic_score += 0.3
+            if 'cancer' in conditions: chronic_score += 0.4
+            if chronic_score > 0:
+                risks.append({'type': 'Chronic Condition', 'score': min(chronic_score, 1.0),
+                               'detail': patient.chronic_conditions})
+            score_total = max(score_total, min(chronic_score, 1.0))
+
+        # 2. Missed follow-up risk
+        overdue_followups = MedicalRecord.query.filter(
+            MedicalRecord.patient_id == patient.id,
+            MedicalRecord.follow_up_date < date.today(),
+            MedicalRecord.follow_up_date.isnot(None),
+        ).count()
+        if overdue_followups > 0:
+            f_score = min(overdue_followups * 0.25, 1.0)
+            risks.append({'type': 'Missed Follow-up',
+                          'score': f_score,
+                          'detail': f'{overdue_followups} overdue follow-up(s)'})
+            score_total = max(score_total, f_score)
+
+        # 3. No-show history risk
+        ns_score = _compute_no_show_score(patient.id, org_id)
+        if ns_score > 0.3:
+            risks.append({'type': 'No-show Pattern', 'score': ns_score,
+                           'detail': f'{int(ns_score*100)}% no-show probability'})
+            score_total = max(score_total, ns_score)
+
+        # 4. Outstanding bill risk
+        outstanding = db.session.query(
+            func.sum(Bill.total_amount - Bill.paid_amount)
+        ).filter(
+            Bill.patient_id == patient.id,
+            Bill.payment_status.in_(['pending', 'partial'])
+        ).scalar() or 0
+        if outstanding > 5000:
+            b_score = min(outstanding / 50000, 1.0)
+            risks.append({'type': 'Outstanding Bills', 'score': b_score,
+                           'detail': f'Rs. {outstanding:,.0f} pending'})
+            score_total = max(score_total, b_score)
+
+        if risks:
+            risk_data.append({
+                'patient': patient,
+                'overall_score': round(min(score_total, 1.0), 2),
+                'risk_level': _risk_level(score_total),
+                'risks': risks,
+            })
+
+    risk_data.sort(key=lambda x: x['overall_score'], reverse=True)
+    latency = int((time.time() - start) * 1000)
+    _log_ai_usage('patient_risk_scoring', org_id=org_id, latency_ms=latency)
+
+    high_risk = [r for r in risk_data if r['risk_level'] == 'high']
+    medium_risk = [r for r in risk_data if r['risk_level'] == 'medium']
+
+    return render_template('ai/patient_risk.html',
+        risk_data=risk_data, high_risk=high_risk, medium_risk=medium_risk,
+        total_analyzed=len(patients))
+
+
+# ── Business Summary AI ────────────────────────────────────────────────────────
+
+@ai_bp.route('/business-summary')
+@login_required
+def business_summary():
+    org_id = current_user.org_id
+    today = date.today()
+    week_ago = today - timedelta(days=7)
+    month_start = today.replace(day=1)
+    yesterday = today - timedelta(days=1)
+    start = time.time()
+
+    def filt(q, model):
+        return q.filter(model.org_id == org_id) if org_id else q
+
+    # Today stats
+    today_appts = filt(Appointment.query.filter_by(appointment_date=today), Appointment).count()
+    today_completed = filt(Appointment.query.filter_by(appointment_date=today, status='completed'), Appointment).count()
+    today_no_show = filt(Appointment.query.filter_by(appointment_date=today, status='no-show'), Appointment).count()
+    today_revenue = filt(db.session.query(func.sum(Bill.paid_amount)).filter(
+        func.date(Bill.bill_date) == today), Bill).scalar() or 0
+
+    # Yesterday for comparison
+    yday_appts = filt(Appointment.query.filter_by(appointment_date=yesterday), Appointment).count()
+    yday_revenue = filt(db.session.query(func.sum(Bill.paid_amount)).filter(
+        func.date(Bill.bill_date) == yesterday), Bill).scalar() or 0
+
+    # Week stats
+    week_revenue = filt(db.session.query(func.sum(Bill.paid_amount)).filter(
+        Bill.bill_date >= week_ago), Bill).scalar() or 0
+    week_patients = filt(Patient.query.filter(Patient.created_at >= week_ago), Patient).count()
+    week_appts = filt(Appointment.query.filter(
+        Appointment.appointment_date >= week_ago,
+        Appointment.appointment_date <= today), Appointment).count()
+
+    # Month stats
+    month_revenue = filt(db.session.query(func.sum(Bill.paid_amount)).filter(
+        Bill.bill_date >= month_start), Bill).scalar() or 0
+    month_patients = filt(Patient.query.filter(Patient.created_at >= month_start), Patient).count()
+    outstanding = filt(db.session.query(func.sum(Bill.total_amount - Bill.paid_amount)).filter(
+        Bill.payment_status.in_(['pending', 'partial'])), Bill).scalar() or 0
+
+    # Doctor performance today
+    doctor_stats = []
+    docs = Doctor.query
+    if org_id:
+        docs = docs.filter_by(org_id=org_id)
+    for doc in docs.filter_by(status='active').all():
+        appts = Appointment.query.filter_by(
+            doctor_id=doc.id, appointment_date=today, status='completed'
+        ).count()
+        if appts > 0:
+            doctor_stats.append({'doctor': doc, 'completed': appts})
+    doctor_stats.sort(key=lambda x: x['completed'], reverse=True)
+
+    # Pending items
+    pending_bills = filt(Bill.query.filter_by(payment_status='pending'), Bill).count()
+    follow_ups_due = filt(MedicalRecord.query.filter(
+        MedicalRecord.follow_up_date <= today,
+        MedicalRecord.follow_up_date.isnot(None)
+    ), MedicalRecord).count()
+    opd_waiting = filt(OPDQueue.query.filter_by(status='waiting', queue_date=today), OPDQueue).count()
+
+    # Generate AI narrative
+    insights = []
+    revenue_change = today_revenue - yday_revenue
+    if revenue_change > 0:
+        insights.append(f"Revenue aaj {'+' if revenue_change > 0 else ''}{revenue_change:,.0f} kal se zyada hai.")
+    elif revenue_change < 0:
+        insights.append(f"Revenue aaj {abs(revenue_change):,.0f} kal se kam hai. Check karein.")
+
+    if today_no_show > 2:
+        ns_rate = int(today_no_show / max(today_appts, 1) * 100)
+        insights.append(f"No-show rate aaj {ns_rate}% hai ({today_no_show} patients). Reminders bhejein.")
+
+    if outstanding > 10000:
+        insights.append(f"Outstanding dues Rs. {outstanding:,.0f} hain. Collection drive zaruri hai.")
+
+    if follow_ups_due > 5:
+        insights.append(f"{follow_ups_due} patients ka follow-up due hai. Aaj contact karein.")
+
+    if doctor_stats:
+        top = doctor_stats[0]
+        insights.append(f"Aaj {top['doctor'].full_name} ne {top['completed']} patients dekhe — top performer.")
+
+    if opd_waiting > 10:
+        insights.append(f"OPD mein {opd_waiting} patients wait kar rahe hain. Capacity review karein.")
+
+    latency = int((time.time() - start) * 1000)
+    _log_ai_usage('business_summary', org_id=org_id, latency_ms=latency)
+
+    return render_template('ai/business_summary.html',
+        today=today, today_appts=today_appts, today_completed=today_completed,
+        today_no_show=today_no_show, today_revenue=today_revenue,
+        yday_appts=yday_appts, yday_revenue=yday_revenue,
+        week_revenue=week_revenue, week_patients=week_patients, week_appts=week_appts,
+        month_revenue=month_revenue, month_patients=month_patients, outstanding=outstanding,
+        doctor_stats=doctor_stats, pending_bills=pending_bills,
+        follow_ups_due=follow_ups_due, opd_waiting=opd_waiting, insights=insights)
+
+
+# ── Follow-up Engine ───────────────────────────────────────────────────────────
+
+@ai_bp.route('/follow-up-engine')
+@login_required
+def follow_up_engine():
+    org_id = current_user.org_id
+    today = date.today()
+    start = time.time()
+
+    # 1. Overdue follow-ups from medical records
+    query = MedicalRecord.query.filter(
+        MedicalRecord.follow_up_date <= today,
+        MedicalRecord.follow_up_date.isnot(None),
+    )
+    if org_id:
+        query = query.filter_by(org_id=org_id)
+    overdue_records = query.order_by(MedicalRecord.follow_up_date).all()
+
+    # 2. Patients with no visit in 90+ days (inactive patients)
+    ninety_days_ago = today - timedelta(days=90)
+    inactive_patients = []
+    pq = Patient.query.filter_by(status='active')
+    if org_id:
+        pq = pq.filter_by(org_id=org_id)
+    for patient in pq.limit(200).all():
+        last_visit = Appointment.query.filter_by(
+            patient_id=patient.id, status='completed'
+        ).order_by(Appointment.appointment_date.desc()).first()
+        if last_visit and last_visit.appointment_date < ninety_days_ago:
+            days_inactive = (today - last_visit.appointment_date).days
+            inactive_patients.append({
+                'patient': patient,
+                'last_visit': last_visit.appointment_date,
+                'days_inactive': days_inactive,
+            })
+        elif not last_visit:
+            inactive_patients.append({
+                'patient': patient,
+                'last_visit': None,
+                'days_inactive': 9999,
+            })
+
+    inactive_patients.sort(key=lambda x: x['days_inactive'], reverse=True)
+    inactive_patients = inactive_patients[:50]
+
+    # 3. Existing follow-up tasks
+    tasks_query = FollowUpTask.query.filter_by(status='pending')
+    if org_id:
+        tasks_query = tasks_query.filter_by(org_id=org_id)
+    pending_tasks = tasks_query.order_by(FollowUpTask.due_date).limit(50).all()
+
+    latency = int((time.time() - start) * 1000)
+    _log_ai_usage('follow_up_engine', org_id=org_id, latency_ms=latency)
+
+    return render_template('ai/follow_up_engine.html',
+        overdue_records=overdue_records, inactive_patients=inactive_patients,
+        pending_tasks=pending_tasks, today=today)
+
+
+@ai_bp.route('/follow-up-engine/create-task', methods=['POST'])
+@login_required
+def create_follow_up_task():
+    org_id = current_user.org_id
+    patient_id = request.form.get('patient_id', type=int)
+    doctor_id = request.form.get('doctor_id', type=int)
+    title = request.form.get('title', '').strip()
+    due_date_str = request.form.get('due_date')
+    priority = request.form.get('priority', 'normal')
+    description = request.form.get('description', '')
+
+    if not patient_id or not title:
+        return jsonify({'error': 'Patient and title required'}), 400
+
+    due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
+    task = FollowUpTask(
+        org_id=org_id,
+        patient_id=patient_id,
+        doctor_id=doctor_id,
+        assigned_to=current_user.id,
+        source='ai',
+        priority=priority,
+        title=title,
+        description=description,
+        due_date=due_date,
+    )
+    db.session.add(task)
+    db.session.commit()
+    return jsonify({'success': True, 'task_id': task.id})
+
+
+@ai_bp.route('/follow-up-engine/complete-task/<int:tid>', methods=['POST'])
+@login_required
+def complete_follow_up_task(tid):
+    org_id = current_user.org_id
+    task = FollowUpTask.query.filter_by(id=tid, org_id=org_id).first_or_404()
+    task.status = 'done'
+    task.completed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# ── AI Insights Dashboard ─────────────────────────────────────────────────────
+
+@ai_bp.route('/insights')
+@login_required
+def insights_dashboard():
+    org_id = current_user.org_id
+    query = AIInsight.query
+    if org_id:
+        query = query.filter_by(org_id=org_id)
+    insights = query.filter_by(is_read=False).order_by(
+        AIInsight.generated_at.desc()
+    ).limit(20).all()
+    all_insights = query.order_by(AIInsight.generated_at.desc()).limit(50).all()
+    return render_template('ai/insights.html', insights=insights, all_insights=all_insights)
+
+
+@ai_bp.route('/insights/mark-read/<int:iid>', methods=['POST'])
+@login_required
+def mark_insight_read(iid):
+    org_id = current_user.org_id
+    insight = AIInsight.query.filter_by(id=iid, org_id=org_id).first_or_404()
+    insight.is_read = True
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@ai_bp.route('/insights/generate', methods=['POST'])
+@login_required
+def generate_insights():
+    """Auto-generate AI insights for the org."""
+    org_id = current_user.org_id
+    today = date.today()
+    generated = 0
+
+    # 1. High no-show alert
+    tomorrow = today + timedelta(days=1)
+    tmrw_appts = Appointment.query.filter(
+        Appointment.appointment_date == tomorrow,
+        Appointment.status == 'scheduled'
+    )
+    if org_id:
+        tmrw_appts = tmrw_appts.filter_by(org_id=org_id)
+    high_risk_count = sum(
+        1 for a in tmrw_appts.all()
+        if _compute_no_show_score(a.patient_id, org_id) >= 0.6
+    )
+    if high_risk_count > 0:
+        insight = AIInsight(
+            org_id=org_id,
+            insight_type='no_show_alert',
+            title=f'{high_risk_count} high no-show risk patients tomorrow',
+            content=f'Kal {high_risk_count} patients ka no-show risk high hai. '
+                    f'Reminder bhejein aur confirm karen. '
+                    f'No-show prediction tool se detail dekhen.',
+            severity='warning',
+        )
+        db.session.add(insight)
+        generated += 1
+
+    # 2. Outstanding bills alert
+    outstanding = db.session.query(func.sum(Bill.total_amount - Bill.paid_amount)).filter(
+        Bill.payment_status.in_(['pending', 'partial'])
+    )
+    if org_id:
+        outstanding = outstanding.filter(Bill.org_id == org_id)
+    outstanding = outstanding.scalar() or 0
+    if outstanding > 20000:
+        insight = AIInsight(
+            org_id=org_id,
+            insight_type='revenue_alert',
+            title=f'Outstanding dues: Rs. {outstanding:,.0f}',
+            content=f'Total unpaid dues Rs. {outstanding:,.0f} hain. '
+                    f'Bill reminders bhejein aur collection follow-up karein.',
+            severity='warning' if outstanding < 100000 else 'critical',
+        )
+        db.session.add(insight)
+        generated += 1
+
+    # 3. Follow-up overdue alert
+    overdue = MedicalRecord.query.filter(
+        MedicalRecord.follow_up_date < today,
+        MedicalRecord.follow_up_date.isnot(None),
+    )
+    if org_id:
+        overdue = overdue.filter_by(org_id=org_id)
+    overdue_count = overdue.count()
+    if overdue_count > 3:
+        insight = AIInsight(
+            org_id=org_id,
+            insight_type='follow_up_alert',
+            title=f'{overdue_count} overdue follow-ups',
+            content=f'{overdue_count} patients ka follow-up due ho gaya hai. '
+                    f'Follow-up Engine se list dekhen aur contact karein.',
+            severity='warning',
+        )
+        db.session.add(insight)
+        generated += 1
+
+    # 4. Daily business summary insight
+    today_rev = db.session.query(func.sum(Bill.paid_amount)).filter(
+        func.date(Bill.bill_date) == today
+    )
+    if org_id:
+        today_rev = today_rev.filter(Bill.org_id == org_id)
+    today_rev = today_rev.scalar() or 0
+
+    today_pts = Appointment.query.filter(
+        Appointment.appointment_date == today,
+        Appointment.status == 'completed'
+    )
+    if org_id:
+        today_pts = today_pts.filter_by(org_id=org_id)
+    today_pts = today_pts.count()
+
+    insight = AIInsight(
+        org_id=org_id,
+        insight_type='daily_summary',
+        title=f'Aaj ka summary — Rs. {today_rev:,.0f} collected, {today_pts} patients',
+        content=f'Aaj {today_pts} patients ka consultation complete hua. '
+                f'Total collection: Rs. {today_rev:,.0f}. '
+                f'Outstanding dues Rs. {outstanding:,.0f}. '
+                f'Business Summary se full detail dekhen.',
+        severity='info',
+    )
+    db.session.add(insight)
+    generated += 1
+
+    db.session.commit()
+    return jsonify({'success': True, 'generated': generated})
+
+
+# ── AI Usage Stats ─────────────────────────────────────────────────────────────
+
+@ai_bp.route('/usage-stats')
+@login_required
+def usage_stats():
+    org_id = current_user.org_id
+    query = AIUsageLog.query
+    if org_id:
+        query = query.filter_by(org_id=org_id)
+
+    total_calls = query.count()
+    by_feature = db.session.query(
+        AIUsageLog.feature, func.count(AIUsageLog.id)
+    )
+    if org_id:
+        by_feature = by_feature.filter(AIUsageLog.org_id == org_id)
+    by_feature = by_feature.group_by(AIUsageLog.feature).all()
+
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_calls = query.filter(AIUsageLog.created_at >= week_ago).count()
+
+    return jsonify({
+        'total_calls': total_calls,
+        'week_calls': week_calls,
+        'by_feature': {f: c for f, c in by_feature},
+    })

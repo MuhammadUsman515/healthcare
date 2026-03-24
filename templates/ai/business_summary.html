@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}AI Business Summary{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="fas fa-chart-line me-2" style="color:var(--purple)"></i>AI Business Summary</h4>
+      <p class="text-muted small mb-0">{{ today.strftime('%A, %B %d, %Y') }}</p>
+    </div>
+    <a href="{{ url_for('ai.insights_dashboard') }}" class="btn btn-outline-secondary btn-sm">AI Insights</a>
+  </div>
+
+  <!-- AI Insights -->
+  {% if insights %}
+  <div class="card border-0 shadow-sm mb-4" style="border-left:4px solid var(--purple) !important">
+    <div class="card-body">
+      <div class="fw-semibold mb-2" style="color:var(--purple)"><i class="fas fa-robot me-2"></i>AI Observations</div>
+      {% for insight in insights %}
+      <div class="d-flex align-items-start gap-2 mb-2">
+        <i class="fas fa-chevron-right text-muted mt-1"></i>
+        <span>{{ insight }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Today Stats -->
+  <h6 class="fw-semibold text-muted mb-3">TODAY</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="text-muted small">Appointments</div>
+        <div class="fs-3 fw-bold text-primary">{{ today_appts }}</div>
+        <div class="text-muted small">vs {{ yday_appts }} yesterday</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="text-muted small">Completed</div>
+        <div class="fs-3 fw-bold text-success">{{ today_completed }}</div>
+        <div class="text-muted small">
+          {{ (today_completed/[today_appts,1]|max*100)|int }}% completion rate
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="text-muted small">No-shows</div>
+        <div class="fs-3 fw-bold text-danger">{{ today_no_show }}</div>
+        <div class="text-muted small">
+          {{ (today_no_show/[today_appts,1]|max*100)|int }}% no-show rate
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="text-muted small">Revenue Collected</div>
+        <div class="fs-3 fw-bold text-success">{{ today_revenue|int:,}}</div>
+        <div class="text-muted small">vs {{ yday_revenue|int }} yesterday</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Week + Month -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="fw-semibold mb-3 text-muted">THIS WEEK</div>
+        <div class="row g-2 text-center">
+          <div class="col-4">
+            <div class="fs-4 fw-bold text-primary">{{ week_appts }}</div>
+            <div class="text-muted small">Appointments</div>
+          </div>
+          <div class="col-4">
+            <div class="fs-4 fw-bold text-success">{{ week_patients }}</div>
+            <div class="text-muted small">New Patients</div>
+          </div>
+          <div class="col-4">
+            <div class="fs-4 fw-bold" style="color:var(--purple)">{{ week_revenue|int }}</div>
+            <div class="text-muted small">Revenue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm p-3">
+        <div class="fw-semibold mb-3 text-muted">THIS MONTH</div>
+        <div class="row g-2 text-center">
+          <div class="col-4">
+            <div class="fs-4 fw-bold text-success">{{ month_patients }}</div>
+            <div class="text-muted small">New Patients</div>
+          </div>
+          <div class="col-4">
+            <div class="fs-4 fw-bold text-primary">{{ month_revenue|int }}</div>
+            <div class="text-muted small">Revenue</div>
+          </div>
+          <div class="col-4">
+            <div class="fs-4 fw-bold text-danger">{{ outstanding|int }}</div>
+            <div class="text-muted small">Outstanding</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Items -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3 text-center border-warning">
+        <div class="text-warning fw-bold fs-4">{{ pending_bills }}</div>
+        <div class="text-muted small">Pending Bills</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3 text-center border-info">
+        <div class="text-info fw-bold fs-4">{{ follow_ups_due }}</div>
+        <div class="text-muted small">Follow-ups Due</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <div class="fw-bold fs-4">{{ opd_waiting }}</div>
+        <div class="text-muted small">OPD Waiting Now</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor Performance -->
+  {% if doctor_stats %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent fw-semibold">Today's Doctor Performance</div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>Doctor</th><th>Patients Seen</th></tr></thead>
+        <tbody>
+          {% for ds in doctor_stats %}
+          <tr>
+            <td>{{ ds.doctor.full_name }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress" style="width:120px;height:8px">
+                  <div class="progress-bar bg-success" style="width:{{ [ds.completed*10,100]|min }}%"></div>
+                </div>
+                <span>{{ ds.completed }}</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

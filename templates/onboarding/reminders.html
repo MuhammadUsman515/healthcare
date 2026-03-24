@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Step 7 — Reminders & AI{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:600px">
+  <h4 class="fw-bold mb-1"><i class="fas fa-bell me-2 text-danger"></i>Step 7: Reminders & AI</h4>
+  <p class="text-muted mb-3">Enable automated reminders and AI features.</p>
+  <form method="POST">
+    <div class="card border-0 shadow-sm p-4 mb-3">
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" name="enable_reminders" id="reminders" checked>
+        <label class="form-check-label fw-semibold" for="reminders">
+          <i class="fas fa-sms me-2 text-success"></i>SMS / WhatsApp Reminders
+        </label>
+        <div class="text-muted small">Appointment reminders, follow-up alerts, bill reminders</div>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="enable_ai" id="ai" checked>
+        <label class="form-check-label fw-semibold" for="ai">
+          <i class="fas fa-brain me-2" style="color:var(--purple)"></i>AI Business Summary & Insights
+        </label>
+        <div class="text-muted small">Daily executive summary, no-show prediction, patient risk alerts</div>
+      </div>
+    </div>
+
+    {% if templates %}
+    <div class="card border-0 shadow-sm p-3 mb-3">
+      <div class="fw-semibold mb-2">Default Templates Created:</div>
+      {% for t in templates %}
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <i class="fas fa-check-circle text-success"></i>
+        <span class="small">{{ t.name }} ({{ t.channel }})</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('onboarding.setup_staff') }}" class="btn btn-outline-secondary">← Back</a>
+      <button class="btn btn-success px-5">Finish Setup 🎉</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

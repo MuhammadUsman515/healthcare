@@ -1,9 +1,83 @@
 from datetime import datetime
+import json
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
+
+# ─── PLAN TIERS & FEATURES ────────────────────────────────────────────────────
+
+PLAN_FEATURES = {
+    'basic': {
+        'label': 'Basic',
+        'max_users': 5,
+        'max_branches': 1,
+        'max_patients_per_month': 200,
+        'modules': ['patients', 'appointments', 'consultation', 'prescription', 'billing', 'reports'],
+        'ai': False,
+        'reminders': False,
+        'lab': False,
+        'pharmacy': False,
+        'ipd': False,
+        'multi_branch': False,
+        'api_access': False,
+        'custom_templates': False,
+        'whatsapp': False,
+    },
+    'standard': {
+        'label': 'Standard',
+        'max_users': 15,
+        'max_branches': 3,
+        'max_patients_per_month': 1000,
+        'modules': ['patients', 'appointments', 'consultation', 'prescription', 'billing',
+                    'reports', 'opd', 'staff', 'departments', 'reminders', 'ai_summary'],
+        'ai': True,
+        'reminders': True,
+        'lab': False,
+        'pharmacy': False,
+        'ipd': False,
+        'multi_branch': True,
+        'api_access': False,
+        'custom_templates': True,
+        'whatsapp': True,
+    },
+    'pro': {
+        'label': 'Pro',
+        'max_users': 50,
+        'max_branches': 10,
+        'max_patients_per_month': 5000,
+        'modules': ['patients', 'appointments', 'consultation', 'prescription', 'billing',
+                    'reports', 'opd', 'staff', 'departments', 'reminders', 'ai_summary',
+                    'lab', 'pharmacy', 'inventory', 'blood_bank', 'ambulance', 'referrals',
+                    'ai_predictive', 'ai_business'],
+        'ai': True,
+        'reminders': True,
+        'lab': True,
+        'pharmacy': True,
+        'ipd': False,
+        'multi_branch': True,
+        'api_access': True,
+        'custom_templates': True,
+        'whatsapp': True,
+    },
+    'enterprise': {
+        'label': 'Enterprise',
+        'max_users': 9999,
+        'max_branches': 9999,
+        'max_patients_per_month': 99999,
+        'modules': ['all'],
+        'ai': True,
+        'reminders': True,
+        'lab': True,
+        'pharmacy': True,
+        'ipd': True,
+        'multi_branch': True,
+        'api_access': True,
+        'custom_templates': True,
+        'whatsapp': True,
+    },
+}
 
 
 class User(UserMixin, db.Model):
@@ -33,7 +107,9 @@ class User(UserMixin, db.Model):
 class Department(db.Model):
     __tablename__ = 'departments'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     head_doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -48,6 +124,8 @@ class Department(db.Model):
 class Doctor(db.Model):
     __tablename__ = 'doctors'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
@@ -79,6 +157,8 @@ class Doctor(db.Model):
 class Patient(db.Model):
     __tablename__ = 'patients'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     patient_id = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
@@ -122,6 +202,8 @@ class Patient(db.Model):
 class Appointment(db.Model):
     __tablename__ = 'appointments'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     appointment_id = db.Column(db.String(20), unique=True, nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
@@ -141,6 +223,8 @@ class Appointment(db.Model):
 class MedicalRecord(db.Model):
     __tablename__ = 'medical_records'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=True)
@@ -199,6 +283,8 @@ class LabTest(db.Model):
 class Ward(db.Model):
     __tablename__ = 'wards'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     name = db.Column(db.String(100), nullable=False)
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
     ward_type = db.Column(db.String(50))  # general, icu, private, semi-private
@@ -252,6 +338,8 @@ class Admission(db.Model):
 class Medicine(db.Model):
     __tablename__ = 'medicines'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     name = db.Column(db.String(200), nullable=False)
     generic_name = db.Column(db.String(200))
     category = db.Column(db.String(100))
@@ -275,6 +363,8 @@ class Medicine(db.Model):
 class Bill(db.Model):
     __tablename__ = 'bills'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     bill_number = db.Column(db.String(20), unique=True, nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     bill_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -316,6 +406,8 @@ class BillItem(db.Model):
 class Staff(db.Model):
     __tablename__ = 'staff'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
@@ -400,6 +492,7 @@ class SystemSetting(db.Model):
 class Supplier(db.Model):
     __tablename__ = 'suppliers'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
     name = db.Column(db.String(200), nullable=False)
     contact_person = db.Column(db.String(100))
     phone = db.Column(db.String(20))
@@ -465,6 +558,8 @@ class PurchaseOrderItem(db.Model):
 class OPDQueue(db.Model):
     __tablename__ = 'opd_queue'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     token_number = db.Column(db.String(20), unique=True, nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
@@ -489,6 +584,8 @@ class OPDQueue(db.Model):
 class BloodInventory(db.Model):
     __tablename__ = 'blood_inventory'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     blood_group = db.Column(db.String(5), nullable=False)  # A+, A-, B+, B-, O+, O-, AB+, AB-
     units_available = db.Column(db.Integer, default=0)
     units_reserved = db.Column(db.Integer, default=0)
@@ -673,3 +770,366 @@ class Organization(db.Model):
 
     def __repr__(self):
         return f'<Organization {self.name}>'
+
+    def has_feature(self, feature):
+        """Check if this org's plan includes a feature."""
+        features = PLAN_FEATURES.get(self.plan_type, PLAN_FEATURES['basic'])
+        return features.get(feature, False)
+
+    def get_plan_features(self):
+        return PLAN_FEATURES.get(self.plan_type, PLAN_FEATURES['basic'])
+
+
+# ─── BRANCH MODEL ─────────────────────────────────────────────────────────────
+
+class Branch(db.Model):
+    __tablename__ = 'branches'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    code = db.Column(db.String(20))
+    address = db.Column(db.Text)
+    city = db.Column(db.String(100))
+    phone = db.Column(db.String(30))
+    email = db.Column(db.String(120))
+    manager_name = db.Column(db.String(100))
+    opening_time = db.Column(db.String(10), default='09:00')
+    closing_time = db.Column(db.String(10), default='18:00')
+    working_days = db.Column(db.String(100), default='Mon,Tue,Wed,Thu,Fri')
+    is_main = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship('Organization', backref='branches')
+
+    def __repr__(self):
+        return f'<Branch {self.name}>'
+
+
+# ─── ONBOARDING TRACKING ──────────────────────────────────────────────────────
+
+class OnboardingProgress(db.Model):
+    __tablename__ = 'onboarding_progress'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False, unique=True)
+    step_org_profile = db.Column(db.Boolean, default=False)
+    step_branch = db.Column(db.Boolean, default=False)
+    step_doctors = db.Column(db.Boolean, default=False)
+    step_services = db.Column(db.Boolean, default=False)
+    step_schedule = db.Column(db.Boolean, default=False)
+    step_billing = db.Column(db.Boolean, default=False)
+    step_staff = db.Column(db.Boolean, default=False)
+    step_reminders = db.Column(db.Boolean, default=False)
+    is_complete = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship('Organization', backref='onboarding', uselist=False)
+
+    @property
+    def completion_pct(self):
+        steps = [self.step_org_profile, self.step_branch, self.step_doctors,
+                 self.step_services, self.step_schedule, self.step_billing,
+                 self.step_staff, self.step_reminders]
+        done = sum(1 for s in steps if s)
+        return int(done / len(steps) * 100)
+
+    def __repr__(self):
+        return f'<Onboarding org={self.org_id} {self.completion_pct}%>'
+
+
+# ─── RBAC MODELS ──────────────────────────────────────────────────────────────
+
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)  # null = system role
+    name = db.Column(db.String(50), nullable=False)
+    label = db.Column(db.String(100))
+    description = db.Column(db.Text)
+    is_system = db.Column(db.Boolean, default=False)  # built-in roles
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    permissions = db.relationship('RolePermission', backref='role', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Role {self.name}>'
+
+
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)  # e.g. patients.view
+    module = db.Column(db.String(50))
+    action = db.Column(db.String(50))  # view, create, edit, delete
+    label = db.Column(db.String(200))
+
+    def __repr__(self):
+        return f'<Permission {self.name}>'
+
+
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), nullable=False)
+
+    permission = db.relationship('Permission')
+
+
+class UserRole(db.Model):
+    __tablename__ = 'user_roles'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+
+    role = db.relationship('Role')
+    branch = db.relationship('Branch')
+
+
+# ─── NOTIFICATION & REMINDER ENGINE ──────────────────────────────────────────
+
+class NotificationTemplate(db.Model):
+    __tablename__ = 'notification_templates'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    name = db.Column(db.String(100), nullable=False)
+    event_type = db.Column(db.String(50), nullable=False)
+    # event_type: appointment_reminder, follow_up_due, bill_due, welcome, result_ready, no_show
+    channel = db.Column(db.String(20), default='sms')  # sms, whatsapp, email, push
+    subject = db.Column(db.String(200))
+    body = db.Column(db.Text, nullable=False)
+    # Placeholders: {{patient_name}}, {{doctor_name}}, {{appointment_date}}, {{amount}}
+    is_active = db.Column(db.Boolean, default=True)
+    send_before_hours = db.Column(db.Integer, default=24)  # for appointment reminders
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship('Organization', backref='notification_templates')
+
+    def __repr__(self):
+        return f'<NotificationTemplate {self.name}>'
+
+
+class NotificationLog(db.Model):
+    __tablename__ = 'notification_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    template_id = db.Column(db.Integer, db.ForeignKey('notification_templates.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    event_type = db.Column(db.String(50))
+    channel = db.Column(db.String(20))
+    recipient = db.Column(db.String(200))  # phone/email
+    message = db.Column(db.Text)
+    status = db.Column(db.String(20), default='sent')  # sent, failed, pending, delivered
+    error_message = db.Column(db.Text)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    patient = db.relationship('Patient', backref='notification_logs')
+
+    def __repr__(self):
+        return f'<NotificationLog {self.event_type} → {self.recipient}>'
+
+
+class ScheduledReminder(db.Model):
+    __tablename__ = 'scheduled_reminders'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=True)
+    reminder_type = db.Column(db.String(50))  # appointment, follow_up, bill, medication
+    channel = db.Column(db.String(20), default='sms')
+    recipient_phone = db.Column(db.String(30))
+    recipient_email = db.Column(db.String(120))
+    message = db.Column(db.Text)
+    scheduled_at = db.Column(db.DateTime, nullable=False)
+    sent_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='pending')  # pending, sent, failed, cancelled
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    patient = db.relationship('Patient', backref='reminders')
+    appointment = db.relationship('Appointment', backref='reminders')
+
+    def __repr__(self):
+        return f'<ScheduledReminder {self.reminder_type} @{self.scheduled_at}>'
+
+
+# ─── AI MODELS ────────────────────────────────────────────────────────────────
+
+class AIInsight(db.Model):
+    """Stores generated AI insights (business summaries, alerts, etc.)"""
+    __tablename__ = 'ai_insights'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    insight_type = db.Column(db.String(50), nullable=False)
+    # types: daily_summary, revenue_alert, no_show_alert, follow_up_alert,
+    #        patient_risk, low_stock_alert, doctor_performance
+    title = db.Column(db.String(300))
+    content = db.Column(db.Text, nullable=False)
+    severity = db.Column(db.String(20), default='info')  # info, warning, critical
+    is_read = db.Column(db.Boolean, default=False)
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    valid_until = db.Column(db.DateTime)
+    metadata_json = db.Column(db.Text)  # JSON blob for extra data
+
+    organization = db.relationship('Organization', backref='ai_insights')
+
+    @property
+    def extra_data(self):
+        try:
+            return json.loads(self.metadata_json) if self.metadata_json else {}
+        except Exception:
+            return {}
+
+    def __repr__(self):
+        return f'<AIInsight {self.insight_type}>'
+
+
+class AIRiskScore(db.Model):
+    """Patient-level risk scores computed by AI."""
+    __tablename__ = 'ai_risk_scores'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    score_type = db.Column(db.String(50), nullable=False)
+    # types: no_show, churn, readmission, chronic_deterioration
+    score = db.Column(db.Float, nullable=False)   # 0.0 – 1.0
+    risk_level = db.Column(db.String(20))          # low, medium, high, critical
+    reason = db.Column(db.Text)
+    recommended_action = db.Column(db.Text)
+    computed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime)
+
+    patient = db.relationship('Patient', backref='risk_scores')
+
+    def __repr__(self):
+        return f'<AIRiskScore patient={self.patient_id} {self.score_type}={self.score:.2f}>'
+
+
+class FollowUpTask(db.Model):
+    """AI-generated or manual follow-up tasks for patients."""
+    __tablename__ = 'follow_up_tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    source = db.Column(db.String(20), default='manual')  # manual, ai, medical_record
+    priority = db.Column(db.String(20), default='normal')  # low, normal, high, urgent
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text)
+    due_date = db.Column(db.Date)
+    status = db.Column(db.String(20), default='pending')  # pending, in_progress, done, cancelled
+    completed_at = db.Column(db.DateTime)
+    reminder_sent = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    patient = db.relationship('Patient', backref='follow_up_tasks')
+    doctor = db.relationship('Doctor', backref='follow_up_tasks')
+    assignee = db.relationship('User', backref='follow_up_tasks')
+
+    def __repr__(self):
+        return f'<FollowUpTask {self.title} [{self.status}]>'
+
+
+class AIUsageLog(db.Model):
+    """Track AI feature usage per org for metering."""
+    __tablename__ = 'ai_usage_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    feature = db.Column(db.String(100))  # visit_summary, business_summary, risk_score, etc.
+    tokens_used = db.Column(db.Integer, default=0)
+    latency_ms = db.Column(db.Integer)
+    status = db.Column(db.String(20), default='success')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AIUsageLog {self.feature}>'
+
+
+# ─── TENANT USAGE METERING ────────────────────────────────────────────────────
+
+class TenantUsageMetric(db.Model):
+    """Monthly usage snapshot per org for plan enforcement."""
+    __tablename__ = 'tenant_usage_metrics'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    month = db.Column(db.String(7), nullable=False)  # YYYY-MM
+    active_users = db.Column(db.Integer, default=0)
+    active_branches = db.Column(db.Integer, default=0)
+    patients_registered = db.Column(db.Integer, default=0)
+    appointments_booked = db.Column(db.Integer, default=0)
+    ai_calls = db.Column(db.Integer, default=0)
+    reminders_sent = db.Column(db.Integer, default=0)
+    bills_generated = db.Column(db.Integer, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    organization = db.relationship('Organization', backref='usage_metrics')
+
+    def __repr__(self):
+        return f'<TenantUsage org={self.org_id} {self.month}>'
+
+
+# ─── PLATFORM ADMIN / SAAS BUSINESS ──────────────────────────────────────────
+
+class PlatformAlert(db.Model):
+    """Alerts for the MediOS platform admin team."""
+    __tablename__ = 'platform_alerts'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    alert_type = db.Column(db.String(50))
+    # types: trial_expiring, payment_failed, churn_risk, usage_spike, support_request
+    message = db.Column(db.Text)
+    severity = db.Column(db.String(20), default='info')  # info, warning, critical
+    is_resolved = db.Column(db.Boolean, default=False)
+    resolved_at = db.Column(db.DateTime)
+    resolved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organization = db.relationship('Organization', backref='platform_alerts')
+
+    def __repr__(self):
+        return f'<PlatformAlert {self.alert_type}>'
+
+
+class ServiceCatalog(db.Model):
+    """Clinic/hospital services with pricing (configurable per tenant)."""
+    __tablename__ = 'service_catalog'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    name = db.Column(db.String(200), nullable=False)
+    code = db.Column(db.String(50))
+    category = db.Column(db.String(100))  # consultation, procedure, lab, package
+    description = db.Column(db.Text)
+    price = db.Column(db.Float, default=0.0)
+    duration_minutes = db.Column(db.Integer, default=30)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ServiceCatalog {self.name}>'
+
+
+class DoctorSchedule(db.Model):
+    """Doctor availability schedule per branch/day."""
+    __tablename__ = 'doctor_schedules'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
+    day_of_week = db.Column(db.String(10), nullable=False)  # Mon, Tue, Wed...
+    start_time = db.Column(db.String(10), nullable=False)
+    end_time = db.Column(db.String(10), nullable=False)
+    slot_duration = db.Column(db.Integer, default=15)  # minutes
+    max_patients = db.Column(db.Integer, default=20)
+    is_active = db.Column(db.Boolean, default=True)
+
+    doctor = db.relationship('Doctor', backref='schedules')
+
+    def __repr__(self):
+        return f'<DoctorSchedule Dr.{self.doctor_id} {self.day_of_week}>'

@@ -222,14 +222,46 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link sidebar-link {% if request.endpoint and 'saas.' in request.endpoint %}active{% endif %}"
-                       href="{{ url_for('saas.subscription') }}">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'ai.' in request.endpoint and 'business' in request.path %}active{% endif %}"
+                       href="{{ url_for('ai.business_summary') }}">
+                        <i class="fas fa-chart-line me-2"></i><span>Business Summary</span>
+                        <span class="badge ms-auto" style="background:var(--purple);font-size:.6rem;padding:2px 6px">AI</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'notifications.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('notifications.index') }}">
+                        <i class="fas fa-bell me-2"></i><span>Notifications</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'ai.follow_up_engine' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('ai.follow_up_engine') }}">
+                        <i class="fas fa-tasks me-2"></i><span>Follow-up Engine</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'saas.' in request.endpoint or request.endpoint and 'billing_saas.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('billing_saas.dashboard') }}">
                         <i class="fas fa-credit-card me-2"></i><span>Subscription</span>
                         {% if subscription_status == 'trial' %}
                         <span class="badge ms-auto" style="background:var(--amber);color:#000;font-size:.6rem;padding:2px 6px">Trial</span>
                         {% endif %}
                     </a>
                 </li>
+
+                {% if current_user.is_authenticated and current_user.role == 'superadmin' %}
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link {% if request.endpoint and 'platform_admin.' in request.endpoint %}active{% endif %}"
+                       href="{{ url_for('platform_admin.dashboard') }}">
+                        <i class="fas fa-globe me-2"></i><span>Platform Admin</span>
+                        <span class="badge ms-auto" style="background:#dc2626;font-size:.6rem;padding:2px 6px">SA</span>
+                    </a>
+                </li>
+                {% endif %}
 
                 <li class="nav-item">
                     <a class="nav-link sidebar-link {% if request.endpoint and 'settings.' in request.endpoint %}active{% endif %}"

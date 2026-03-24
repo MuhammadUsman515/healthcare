@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Subscription & Billing{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="fas fa-credit-card me-2 text-primary"></i>Subscription & Billing</h4>
+      <p class="text-muted small mb-0">{{ org.name }} · {{ org.plan_type|title }} Plan</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('billing_saas.upgrade') }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-arrow-up me-1"></i>Upgrade Plan
+      </a>
+      <a href="{{ url_for('billing_saas.usage_report') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-chart-bar me-1"></i>Usage Report
+      </a>
+    </div>
+  </div>
+
+  <!-- Current Plan -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <div class="text-muted small mb-1">Current Plan</div>
+        <div class="fs-2 fw-bold text-primary text-capitalize">{{ org.plan_type }}</div>
+        <span class="badge bg-{{ 'success' if org.subscription_status=='active' else 'warning text-dark' if org.subscription_status=='trial' else 'danger' }} mt-2">
+          {{ org.subscription_status|title }}
+        </span>
+        {% if org.subscription_status == 'trial' %}
+        <div class="mt-2 text-warning small">{{ org.trial_days_left }} days remaining</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <div class="text-muted small mb-1">Monthly Price</div>
+        <div class="fs-2 fw-bold">Rs. {{ plan_monthly_pkr.get(org.plan_type, 0)|int }}</div>
+        <div class="text-muted small">per month</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm p-4 text-center">
+        <div class="text-muted small mb-1">Users / Branches</div>
+        <div class="fs-2 fw-bold">{{ usage.active_users }} / {{ plan_features.max_users }}</div>
+        <div class="text-muted small">{{ usage.active_branches }} / {{ plan_features.max_branches }} branches</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage This Month -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent fw-semibold">Usage This Month ({{ usage.month }})</div>
+    <div class="card-body">
+      <div class="row g-3">
+        {% set usage_items = [
+          ('Patients Registered', usage.patients_this_month, plan_features.max_patients_per_month, 'user-injured'),
+          ('Appointments', usage.appointments_this_month, 9999, 'calendar-check'),
+          ('AI Calls', usage.ai_calls_this_month, 9999, 'brain'),
+          ('Reminders Sent', usage.reminders_this_month, 9999, 'bell'),
+          ('Bills Generated', usage.bills_this_month, 9999, 'file-invoice'),
+        ] %}
+        {% for label, used, max_val, icon in usage_items %}
+        <div class="col-md-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:44px;height:44px">
+              <i class="fas fa-{{ icon }} text-primary"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="small fw-semibold">{{ label }}</div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height:6px">
+                  {% set pct = [used/[max_val,1]|max*100, 100]|min|int %}
+                  <div class="progress-bar {% if pct >= 90 %}bg-danger{% elif pct >= 70 %}bg-warning{% else %}bg-success{% endif %}" style="width:{{ pct }}%"></div>
+                </div>
+                <span class="small fw-semibold">{{ used }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Plan Features -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent fw-semibold">Your Plan Features</div>
+    <div class="card-body">
+      <div class="row g-2">
+        {% for key, val in plan_features.items() %}
+        {% if key not in ['label','modules','max_users','max_branches','max_patients_per_month'] %}
+        <div class="col-md-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-{{ 'check-circle text-success' if val else 'times-circle text-muted' }}"></i>
+            <span class="small text-capitalize {{ '' if val else 'text-muted' }}">{{ key.replace('_',' ') }}</span>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

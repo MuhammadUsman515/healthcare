@@ -19,6 +19,10 @@ def index():
     status = request.args.get('status', 'all')
 
     query = Patient.query
+    # Tenant isolation
+    if current_user.org_id:
+        query = query.filter_by(org_id=current_user.org_id)
+
     if search:
         query = query.filter(
             (Patient.first_name.ilike(f'%{search}%')) |
@@ -41,6 +45,7 @@ def new():
         dob = datetime.strptime(dob_str, '%Y-%m-%d').date() if dob_str else None
 
         patient = Patient(
+            org_id=current_user.org_id,
             patient_id=generate_patient_id(),
             first_name=request.form.get('first_name'),
             last_name=request.form.get('last_name'),

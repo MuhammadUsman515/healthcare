@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Step 4 — Services{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:700px">
+  <h4 class="fw-bold mb-1"><i class="fas fa-list-alt me-2 text-info"></i>Step 4: Services & Pricing</h4>
+  <p class="text-muted mb-3">Define the services your clinic offers.</p>
+  <form method="POST">
+    <div id="serviceList">
+      {% for preset in [
+        ('General Consultation','consultation',500,15),
+        ('Follow-up Visit','consultation',300,10),
+        ('ECG','procedure',800,20),
+      ] %}
+      <div class="row g-2 mb-2 service-row">
+        <div class="col-md-4"><input type="text" name="service_name" class="form-control" placeholder="Service Name" value="{{ preset[0] }}"></div>
+        <div class="col-md-2">
+          <select name="category" class="form-select">
+            {% for cat in ['consultation','procedure','lab','package'] %}
+            <option value="{{ cat }}" {% if cat==preset[1] %}selected{% endif %}>{{ cat|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2"><input type="number" name="price" class="form-control" placeholder="Price" value="{{ preset[2] }}"></div>
+        <div class="col-md-2"><input type="number" name="duration" class="form-control" placeholder="Min" value="{{ preset[3] }}"></div>
+        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.service-row').remove()"><i class="fas fa-trash"></i></button></div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm mb-4" onclick="addService()">
+      <i class="fas fa-plus me-1"></i>Add Service
+    </button>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('onboarding.setup_doctors') }}" class="btn btn-outline-secondary">← Back</a>
+      <div>
+        <a href="{{ url_for('onboarding.setup_schedule') }}" class="btn btn-outline-secondary me-2">Skip</a>
+        <button class="btn btn-primary px-4">Save & Continue →</button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+function addService() {
+  const html = `<div class="row g-2 mb-2 service-row">
+    <div class="col-md-4"><input type="text" name="service_name" class="form-control" placeholder="Service Name"></div>
+    <div class="col-md-2"><select name="category" class="form-select"><option>consultation</option><option>procedure</option><option>lab</option><option>package</option></select></div>
+    <div class="col-md-2"><input type="number" name="price" class="form-control" placeholder="Price"></div>
+    <div class="col-md-2"><input type="number" name="duration" class="form-control" placeholder="Min" value="15"></div>
+    <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.service-row').remove()"><i class="fas fa-trash"></i></button></div>
+  </div>`;
+  document.getElementById('serviceList').insertAdjacentHTML('beforeend', html);
+}
+</script>
+{% endblock %}

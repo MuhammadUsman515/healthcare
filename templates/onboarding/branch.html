@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Step 2 — Branch Setup{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:600px">
+  <h4 class="fw-bold mb-1"><i class="fas fa-map-marker-alt me-2 text-danger"></i>Step 2: Main Branch</h4>
+  <p class="text-muted mb-4">Configure your main branch location and hours.</p>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Branch Name</label>
+      <input type="text" name="branch_name" class="form-control" value="{{ branch.name if branch else org.name + ' - Main' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Address</label>
+      <textarea name="address" class="form-control" rows="2">{{ branch.address if branch else org.address or '' }}</textarea>
+    </div>
+    <div class="row g-2">
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">City</label>
+        <input type="text" name="city" class="form-control" value="{{ branch.city if branch else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Phone</label>
+        <input type="text" name="phone" class="form-control" value="{{ branch.phone if branch else org.contact_phone or '' }}">
+      </div>
+    </div>
+    <div class="row g-2">
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Opening Time</label>
+        <input type="time" name="opening_time" class="form-control" value="{{ branch.opening_time if branch else '09:00' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Closing Time</label>
+        <input type="time" name="closing_time" class="form-control" value="{{ branch.closing_time if branch else '18:00' }}">
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Working Days</label>
+      <div class="d-flex flex-wrap gap-2">
+        {% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="working_days" value="{{ day }}" id="day{{ day }}"
+            {% if not branch or day in (branch.working_days or 'Mon,Tue,Wed,Thu,Fri') %}checked{% endif %}>
+          <label class="form-check-label" for="day{{ day }}">{{ day }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('onboarding.org_profile') }}" class="btn btn-outline-secondary">← Back</a>
+      <button class="btn btn-primary px-4">Save & Continue →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

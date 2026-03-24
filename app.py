@@ -23,6 +23,10 @@ from routes.audit import audit_bp
 from routes.settings import settings_bp
 from routes.saas import saas_bp
 from routes.ai import ai_bp
+from routes.platform_admin import platform_admin_bp
+from routes.onboarding import onboarding_bp
+from routes.notifications import notifications_bp
+from routes.billing_saas import billing_saas_bp
 
 
 def create_app():
@@ -115,6 +119,10 @@ def create_app():
     app.register_blueprint(settings_bp)
     app.register_blueprint(saas_bp)
     app.register_blueprint(ai_bp)
+    app.register_blueprint(platform_admin_bp)
+    app.register_blueprint(onboarding_bp)
+    app.register_blueprint(notifications_bp)
+    app.register_blueprint(billing_saas_bp)
 
     return app
 

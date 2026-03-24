@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if tmpl else 'New' }} Notification Template{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:650px">
+  <h4 class="fw-bold mb-4"><i class="fas fa-edit me-2 text-primary"></i>{{ 'Edit' if tmpl else 'New' }} Template</h4>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Template Name</label>
+      <input type="text" name="name" class="form-control" value="{{ tmpl.name if tmpl else '' }}" required>
+    </div>
+    <div class="row g-2">
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Event Type</label>
+        <select name="event_type" class="form-select">
+          {% for evt in ['appointment_reminder','follow_up_due','bill_due','welcome','result_ready','no_show','manual'] %}
+          <option value="{{ evt }}" {% if tmpl and tmpl.event_type==evt %}selected{% endif %}>{{ evt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Channel</label>
+        <select name="channel" class="form-select">
+          {% for ch in ['sms','whatsapp','email','push'] %}
+          <option value="{{ ch }}" {% if tmpl and tmpl.channel==ch %}selected{% endif %}>{{ ch|upper }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Subject (Email only)</label>
+      <input type="text" name="subject" class="form-control" value="{{ tmpl.subject if tmpl else '' }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Message Body</label>
+      <textarea name="body" class="form-control" rows="5" required>{{ tmpl.body if tmpl else '' }}</textarea>
+      <div class="text-muted small mt-1">
+        Available placeholders: <code>{{'{{'}}patient_name{{'}}'}}</code>, <code>{{'{{'}}doctor_name{{'}}'}}</code>,
+        <code>{{'{{'}}appointment_date{{'}}'}}</code>, <code>{{'{{'}}appointment_time{{'}}'}}</code>,
+        <code>{{'{{'}}amount{{'}}'}}</code>, <code>{{'{{'}}follow_up_date{{'}}'}}</code>
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Send Before (hours)</label>
+      <input type="number" name="send_before_hours" class="form-control" value="{{ tmpl.send_before_hours if tmpl else 24 }}">
+    </div>
+    {% if tmpl %}
+    <div class="form-check mb-3">
+      <input type="checkbox" name="is_active" class="form-check-input" id="isActive" {{ 'checked' if tmpl.is_active }}>
+      <label class="form-check-label" for="isActive">Active</label>
+    </div>
+    {% endif %}
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('notifications.index') }}" class="btn btn-outline-secondary">← Cancel</a>
+      <button class="btn btn-primary px-4">Save Template</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

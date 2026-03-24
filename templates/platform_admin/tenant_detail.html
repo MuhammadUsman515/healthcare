@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ org.name }} — Tenant Detail{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-0">{{ org.name }}</h4>
+      <p class="text-muted small mb-0">{{ org.contact_email }} · {{ org.country }}</p>
+    </div>
+    <a href="{{ url_for('platform_admin.tenants') }}" class="btn btn-outline-secondary btn-sm">← Tenants</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-2"><div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small">Plan</div>
+      <div class="fw-bold text-capitalize">{{ org.plan_type }}</div>
+      <span class="badge bg-{{ 'success' if org.subscription_status=='active' else 'warning text-dark' if org.subscription_status=='trial' else 'danger' }}">{{ org.subscription_status }}</span>
+    </div></div>
+    <div class="col-md-2"><div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small">Users</div>
+      <div class="fs-4 fw-bold">{{ users|length }}</div>
+    </div></div>
+    <div class="col-md-2"><div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small">Patients</div>
+      <div class="fs-4 fw-bold">{{ patient_count }}</div>
+    </div></div>
+    <div class="col-md-2"><div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small">Appointments</div>
+      <div class="fs-4 fw-bold">{{ appt_count }}</div>
+    </div></div>
+    <div class="col-md-2"><div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small">Bills</div>
+      <div class="fs-4 fw-bold">{{ bill_count }}</div>
+    </div></div>
+    <div class="col-md-2"><div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small">AI Calls</div>
+      <div class="fs-4 fw-bold">{{ ai_calls }}</div>
+    </div></div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Plan Management -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent fw-semibold"><i class="fas fa-layer-group me-2"></i>Plan Management</div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('platform_admin.change_tenant_plan', org_id=org.id) }}">
+            <div class="mb-3">
+              <label class="form-label">Plan</label>
+              <select name="plan_type" class="form-select">
+                {% for plan in ['basic','standard','pro','enterprise'] %}
+                <option value="{{ plan }}" {% if org.plan_type==plan %}selected{% endif %}>{{ plan|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <select name="subscription_status" class="form-select">
+                {% for s in ['trial','active','expired','cancelled'] %}
+                <option value="{{ s }}" {% if org.subscription_status==s %}selected{% endif %}>{{ s|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button class="btn btn-primary w-100">Save Changes</button>
+          </form>
+          <hr>
+          <form method="POST" action="{{ url_for('platform_admin.extend_trial', org_id=org.id) }}">
+            <div class="input-group">
+              <input type="number" name="days" class="form-control" value="7" min="1" max="90">
+              <button class="btn btn-outline-warning">Extend Trial</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent fw-semibold"><i class="fas fa-check-circle me-2"></i>Onboarding Progress</div>
+        <div class="card-body">
+          {% if onboarding %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span>Overall</span><span>{{ onboarding.completion_pct }}%</span>
+            </div>
+            <div class="progress" style="height:10px">
+              <div class="progress-bar bg-success" style="width:{{ onboarding.completion_pct }}%"></div>
+            </div>
+          </div>
+          {% for step in ['step_org_profile','step_branch','step_doctors','step_services','step_schedule','step_billing','step_staff','step_reminders'] %}
+          <div class="d-flex align-items-center mb-1">
+            <i class="fas fa-{{ 'check-circle text-success' if onboarding[step] else 'circle text-muted' }} me-2"></i>
+            <span class="small text-capitalize">{{ step.replace('step_','').replace('_',' ') }}</span>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted">No onboarding data yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan Features -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent fw-semibold"><i class="fas fa-toggle-on me-2"></i>Plan Features</div>
+        <div class="card-body">
+          {% for key, val in plan_features.items() %}
+          {% if key not in ['label','modules','max_users','max_branches','max_patients_per_month'] %}
+          <div class="d-flex justify-content-between mb-1">
+            <span class="small text-capitalize">{{ key.replace('_',' ') }}</span>
+            <span class="badge bg-{{ 'success' if val else 'secondary' }}">{{ 'On' if val else 'Off' }}</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+          <hr>
+          <div class="small text-muted">Max Users: <strong>{{ plan_features.max_users }}</strong></div>
+          <div class="small text-muted">Max Branches: <strong>{{ plan_features.max_branches }}</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users -->
+  <div class="card border-0 shadow-sm mt-3">
+    <div class="card-header bg-transparent fw-semibold"><i class="fas fa-users me-2"></i>Users</div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>Username</th><th>Email</th><th>Role</th><th>Active</th></tr></thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td><span class="badge bg-secondary">{{ user.role }}</span></td>
+            <td><span class="badge bg-{{ 'success' if user.is_active else 'danger' }}">{{ 'Yes' if user.is_active else 'No' }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
