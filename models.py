@@ -319,6 +319,8 @@ class Bed(db.Model):
 class Admission(db.Model):
     __tablename__ = 'admissions'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    branch_id = db.Column(db.Integer, db.ForeignKey('branches.id'), nullable=True)
     admission_id = db.Column(db.String(20), unique=True, nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     bed_id = db.Column(db.Integer, db.ForeignKey('beds.id'), nullable=True)
@@ -598,6 +600,7 @@ class BloodInventory(db.Model):
 class BloodRequest(db.Model):
     __tablename__ = 'blood_requests'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
     request_number = db.Column(db.String(30), unique=True, nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=True)
@@ -621,6 +624,7 @@ class BloodRequest(db.Model):
 class Ambulance(db.Model):
     __tablename__ = 'ambulances'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
     vehicle_number = db.Column(db.String(30), unique=True, nullable=False)
     vehicle_type = db.Column(db.String(50), default='basic')  # basic, advanced, neonatal
     driver_name = db.Column(db.String(100))
@@ -640,6 +644,7 @@ class Ambulance(db.Model):
 class AmbulanceDispatch(db.Model):
     __tablename__ = 'ambulance_dispatches'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
     dispatch_number = db.Column(db.String(30), unique=True, nullable=False)
     ambulance_id = db.Column(db.Integer, db.ForeignKey('ambulances.id'), nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
@@ -662,6 +667,7 @@ class AmbulanceDispatch(db.Model):
 class Referral(db.Model):
     __tablename__ = 'referrals'
     id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
     referral_number = db.Column(db.String(30), unique=True, nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     referring_doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
