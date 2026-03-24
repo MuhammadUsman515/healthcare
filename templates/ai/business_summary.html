@@ -57,7 +57,7 @@
     <div class="col-md-3">
       <div class="card border-0 shadow-sm p-3 text-center">
         <div class="text-muted small">Revenue Collected</div>
-        <div class="fs-3 fw-bold text-success">{{ today_revenue|int:,}}</div>
+        <div class="fs-3 fw-bold text-success">{{ "{:,}".format(today_revenue|int) }}</div>
         <div class="text-muted small">vs {{ yday_revenue|int }} yesterday</div>
       </div>
     </div>

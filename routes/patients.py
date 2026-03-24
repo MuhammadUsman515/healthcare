@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from models import db, Patient, Appointment, MedicalRecord, Bill, Admission
 from datetime import datetime, date
 import random
